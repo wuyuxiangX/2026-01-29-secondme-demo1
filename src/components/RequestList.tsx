@@ -23,8 +23,6 @@ interface Offer {
 interface Request {
   id: string;
   content: string;
-  budget?: number;
-  deadline?: string;
   analysis?: {
     summary?: string;
     category?: string;
@@ -38,20 +36,14 @@ interface Request {
 
 interface RequestListProps {
   requests: Request[];
-  onMatch: (requestId: string) => Promise<void>;
+  onViewConversation?: (requestId: string) => void;
 }
 
-export default function RequestList({ requests, onMatch }: RequestListProps) {
-  const [matchingId, setMatchingId] = useState<string | null>(null);
+export default function RequestList({ requests, onViewConversation }: RequestListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const handleMatch = async (requestId: string) => {
-    setMatchingId(requestId);
-    try {
-      await onMatch(requestId);
-    } finally {
-      setMatchingId(null);
-    }
+  const handleViewConversation = (requestId: string) => {
+    onViewConversation?.(requestId);
   };
 
   const getStatusColor = (status: string) => {
@@ -90,11 +82,6 @@ export default function RequestList({ requests, onMatch }: RequestListProps) {
                   <span className={`px-2 py-0.5 border text-xs uppercase tracking-wider ${getStatusColor(request.status)}`}>
                     {request.status}
                   </span>
-                  {request.budget && (
-                    <span className="text-[#00f5ff] text-sm font-mono">
-                      ${request.budget}
-                    </span>
-                  )}
                 </div>
                 <p className="text-[#e4e4e7]">{request.content}</p>
                 {request.analysis?.summary && (
@@ -129,21 +116,11 @@ export default function RequestList({ requests, onMatch }: RequestListProps) {
           {/* Expanded Details */}
           {expandedId === request.id && (
             <div className="p-6 border-b border-[#27272a] bg-[#0a0a0f]/50">
-              <div className="grid md:grid-cols-2 gap-4 text-sm">
-                {request.deadline && (
-                  <div>
-                    <span className="text-[#52525b]">DEADLINE: </span>
-                    <span className="text-[#e4e4e7] font-mono">
-                      {new Date(request.deadline).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                <div>
-                  <span className="text-[#52525b]">CREATED: </span>
-                  <span className="text-[#e4e4e7] font-mono">
-                    {new Date(request.createdAt).toLocaleString()}
-                  </span>
-                </div>
+              <div className="text-sm">
+                <span className="text-[#52525b]">CREATED: </span>
+                <span className="text-[#e4e4e7] font-mono">
+                  {new Date(request.createdAt).toLocaleString()}
+                </span>
               </div>
               {request.analysis?.requirements && (
                 <div className="mt-4">
@@ -169,13 +146,12 @@ export default function RequestList({ requests, onMatch }: RequestListProps) {
                   OFFERS ({request.offers.length})
                 </span>
               </div>
-              {request.status === 'pending' && (
+              {onViewConversation && (
                 <button
-                  onClick={() => handleMatch(request.id)}
-                  disabled={matchingId === request.id}
-                  className="px-4 py-2 border border-[#ff00ff] text-[#ff00ff] text-sm hover:bg-[#ff00ff]/10 transition-colors disabled:opacity-50"
+                  onClick={() => handleViewConversation(request.id)}
+                  className="px-4 py-2 border border-[#8b5cf6] text-[#8b5cf6] text-sm hover:bg-[#8b5cf6]/10 transition-colors"
                 >
-                  {matchingId === request.id ? 'SCANNING...' : 'SCAN_NETWORK'}
+                  VIEW_CONVERSATIONS
                 </button>
               )}
             </div>

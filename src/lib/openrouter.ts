@@ -3,8 +3,22 @@
  * 支持多种模型，用于 Agent 协商系统
  */
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY!;
-const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+// 获取配置（运行时读取，支持延迟加载 .env）
+function getConfig() {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const baseUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+
+  if (!apiKey) {
+    throw new Error('OPENROUTER_API_KEY is not set');
+  }
+
+  return { apiKey, baseUrl };
+}
+
+// OpenRouter 使用原生 fetch
+async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  return globalThis.fetch(url, init);
+}
 
 // 可用模型配置
 // 注意：使用中国大陆可用的模型
@@ -68,11 +82,12 @@ export interface StreamChunk {
  */
 export async function chat(options: ChatOptions): Promise<ChatResponse> {
   const { model = MODELS.ANALYST, messages, temperature = 0.7, max_tokens = 2000 } = options;
+  const { apiKey, baseUrl } = getConfig();
 
-  const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+  const response = await apiFetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'http://localhost:3000',
       'X-Title': 'SecondMe Agent Network',
@@ -99,11 +114,12 @@ export async function chat(options: ChatOptions): Promise<ChatResponse> {
  */
 export async function chatStream(options: ChatOptions): Promise<ReadableStream<string>> {
   const { model = MODELS.ANALYST, messages, temperature = 0.7, max_tokens = 2000 } = options;
+  const { apiKey, baseUrl } = getConfig();
 
-  const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+  const response = await apiFetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'http://localhost:3000',
       'X-Title': 'SecondMe Agent Network',

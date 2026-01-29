@@ -24,6 +24,7 @@ export async function GET() {
     } catch {
       // 用户未登录或获取失败，忽略
     }
+
     const requests = await prisma.request.findMany({
       where: {
         status: { not: 'cancelled' },
@@ -38,9 +39,9 @@ export async function GET() {
             secondmeId: true,
           },
         },
-        offers: {
+        conversations: {
           include: {
-            user: {
+            targetUser: {
               select: {
                 id: true,
                 name: true,
@@ -59,7 +60,7 @@ export async function GET() {
       content: req.content,
       budget: req.budget,
       deadline: req.deadline,
-      analysis: req.analysis ? JSON.parse(req.analysis) : null,
+      summary: req.summary,
       status: req.status,
       createdAt: req.createdAt,
       user: {
@@ -67,17 +68,16 @@ export async function GET() {
         name: req.user.name,
         avatar: req.user.avatar,
       },
-      offers: req.offers.map((offer) => ({
-        id: offer.id,
-        content: offer.content,
-        reasoning: offer.reasoning,
-        resource: offer.resource ? JSON.parse(offer.resource) : null,
-        status: offer.status,
-        user: offer.user,
-        createdAt: offer.createdAt,
+      conversations: req.conversations.map((conv) => ({
+        id: conv.id,
+        targetUser: conv.targetUser,
+        messages: JSON.parse(conv.messages),
+        summary: conv.summary,
+        status: conv.status,
+        createdAt: conv.createdAt,
       })),
-      offerCount: req.offers.length,
-      acceptedCount: req.offers.filter((o) => o.status === 'accepted').length,
+      conversationCount: req.conversations.length,
+      completedCount: req.conversations.filter((c) => c.status === 'completed').length,
     }));
 
     return NextResponse.json({ requests: formattedRequests, currentUserId });

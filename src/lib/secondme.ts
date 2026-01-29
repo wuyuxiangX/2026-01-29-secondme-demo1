@@ -3,23 +3,38 @@
  * 基于 https://secondmeapi.preview.huawei-zeabur.cn/zh/docs/api-reference
  */
 
+import proxyFetch from './proxyFetch';
+
 const SECONDME_BASE_URL = 'https://app.mindos.com/gate/lab';
+
+// 使用支持代理的 fetch
+const apiFetch = proxyFetch;
 
 // OAuth 授权 URL (使用通用链接)
 const OAUTH_AUTHORIZE_URL = 'https://go.second.me/oauth/';
 
-// OAuth 配置
+// OAuth 配置 - 运行时获取，避免模块加载时环境变量未就绪
+function getOAuthConfig() {
+  return {
+    clientId: process.env.SECONDME_CLIENT_ID!,
+    clientSecret: process.env.SECONDME_CLIENT_SECRET!,
+    redirectUri: process.env.SECONDME_REDIRECT_URI!,
+    scopes: [
+      'user.info',
+      'user.info.shades',
+      'user.info.softmemory',
+      'chat',
+      'note.add',
+    ],
+  };
+}
+
+// 保持向后兼容的导出
 export const OAUTH_CONFIG = {
-  clientId: process.env.SECONDME_CLIENT_ID!,
-  clientSecret: process.env.SECONDME_CLIENT_SECRET!,
-  redirectUri: process.env.SECONDME_REDIRECT_URI!,
-  scopes: [
-    'user.info',
-    'user.info.shades',
-    'user.info.softmemory',
-    'chat',
-    'note.add',
-  ],
+  get clientId() { return getOAuthConfig().clientId; },
+  get clientSecret() { return getOAuthConfig().clientSecret; },
+  get redirectUri() { return getOAuthConfig().redirectUri; },
+  get scopes() { return getOAuthConfig().scopes; },
 };
 
 // Token 响应类型
@@ -34,6 +49,8 @@ export interface TokenResponse {
 
 // 用户信息类型
 export interface UserInfo {
+  id?: string;
+  openId?: string;
   name: string;
   email: string;
   avatar?: string;
@@ -88,7 +105,7 @@ export function buildAuthorizationUrl(state: string): string {
  * 用授权码换取 access token
  */
 export async function exchangeCodeForToken(code: string): Promise<TokenResponse> {
-  const response = await fetch(`${SECONDME_BASE_URL}/api/oauth/token/code`, {
+  const response = await apiFetch(`${SECONDME_BASE_URL}/api/oauth/token/code`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -115,7 +132,7 @@ export async function exchangeCodeForToken(code: string): Promise<TokenResponse>
  * 刷新 access token
  */
 export async function refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
-  const response = await fetch(`${SECONDME_BASE_URL}/api/oauth/token/refresh`, {
+  const response = await apiFetch(`${SECONDME_BASE_URL}/api/oauth/token/refresh`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -141,7 +158,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<TokenRes
  * 获取用户基本信息
  */
 export async function getUserInfo(accessToken: string): Promise<UserInfo> {
-  const response = await fetch(`${SECONDME_BASE_URL}/api/secondme/user/info`, {
+  const response = await apiFetch(`${SECONDME_BASE_URL}/api/secondme/user/info`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -160,7 +177,7 @@ export async function getUserInfo(accessToken: string): Promise<UserInfo> {
  * 获取用户兴趣标签
  */
 export async function getUserShades(accessToken: string): Promise<UserShade[]> {
-  const response = await fetch(`${SECONDME_BASE_URL}/api/secondme/user/shades`, {
+  const response = await apiFetch(`${SECONDME_BASE_URL}/api/secondme/user/shades`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -189,7 +206,7 @@ export async function getUserSoftMemory(
 
   const url = `${SECONDME_BASE_URL}/api/secondme/user/softmemory${params.toString() ? `?${params}` : ''}`;
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -211,7 +228,7 @@ export async function createNote(
   accessToken: string,
   note: { type: 'text' | 'link'; content: string; title?: string }
 ): Promise<{ id: string }> {
-  const response = await fetch(`${SECONDME_BASE_URL}/api/secondme/note/add`, {
+  const response = await apiFetch(`${SECONDME_BASE_URL}/api/secondme/note/add`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -260,7 +277,7 @@ export async function chatStream(
   accessToken: string,
   options: ChatStreamOptions
 ): Promise<Response> {
-  const response = await fetch(`${SECONDME_BASE_URL}/api/secondme/chat/stream`, {
+  const response = await apiFetch(`${SECONDME_BASE_URL}/api/secondme/chat/stream`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -318,10 +335,15 @@ export async function chat(
           if (parsed.sessionId) {
             sessionId = parsed.sessionId;
           }
-          if (parsed.content) {
+          // 处理 OpenAI 兼容格式: choices[0].delta.content
+          if (parsed.choices?.[0]?.delta?.content) {
+            content += parsed.choices[0].delta.content;
+          }
+          // 处理其他可能的格式
+          else if (parsed.content) {
             content += parsed.content;
           }
-          if (parsed.delta) {
+          else if (parsed.delta) {
             content += parsed.delta;
           }
         } catch {
@@ -349,7 +371,7 @@ export async function getChatSessions(
 
   const url = `${SECONDME_BASE_URL}/api/secondme/chat/session/list${params.toString() ? `?${params}` : ''}`;
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -371,7 +393,7 @@ export async function getChatMessages(
   accessToken: string,
   sessionId: string
 ): Promise<ChatMessage[]> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${SECONDME_BASE_URL}/api/secondme/chat/session/messages?sessionId=${sessionId}`,
     {
       headers: {

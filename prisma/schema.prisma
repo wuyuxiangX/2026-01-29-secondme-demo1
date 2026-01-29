@@ -21,7 +21,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   requests     Request[]
-  offers       Offer[]
+  // 作为对话目标的对话记录
+  conversations Conversation[] @relation("TargetUser")
 }
 
 model Request {
@@ -31,23 +32,23 @@ model Request {
   content     String
   budget      Float?
   deadline    DateTime?
-  analysis    String?  // AI 分析结果 (JSON)
-  status      String   @default("pending") // pending, matching, completed, cancelled
+  summary     String?   // 所有对话的总结
+  status      String   @default("pending") // pending, broadcasting, completed
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  offers      Offer[]
+  conversations Conversation[]
 }
 
-model Offer {
-  id          String   @id @default(cuid())
-  requestId   String
-  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content     String
-  reasoning   String?  // Agent 分析理由
-  resource    String?  // 提供的资源 (JSON)
-  status      String   @default("pending") // pending, accepted, rejected
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// 对话记录：发布者和某个用户的对话
+model Conversation {
+  id           String   @id @default(cuid())
+  requestId    String
+  request      Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  targetUserId String   // 对话对象的用户 ID
+  targetUser   User     @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+  messages     String   // JSON 数组：[{role, content, timestamp}]
+  summary      String?  // 这段对话的摘要
+  status       String   @default("ongoing") // ongoing, completed
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

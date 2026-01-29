@@ -263,3 +263,59 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--neon-magenta);
 }
+
+/* ===== Network Conversation Styles ===== */
+
+/* Message Bubbles */
+.message-requester {
+  background: rgba(0, 245, 255, 0.1);
+  border-left: 2px solid var(--neon-cyan);
+}
+
+.message-agent {
+  background: rgba(255, 0, 255, 0.1);
+  border-right: 2px solid var(--neon-magenta);
+}
+
+/* Summary Highlight Card */
+.summary-highlight {
+  border: 1px solid var(--neon-purple);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(255, 0, 255, 0.05));
+}
+
+/* Typing Indicator Animation */
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
+.typing-indicator span {
+  animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Scrollbar for conversation threads */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(0, 245, 255, 0.2);
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 245, 255, 0.4);
+}

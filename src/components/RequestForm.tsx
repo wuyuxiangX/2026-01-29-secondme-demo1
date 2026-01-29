@@ -9,14 +9,10 @@ interface RequestFormProps {
 
 export interface RequestFormData {
   content: string;
-  budget?: number;
-  deadline?: string;
 }
 
 export default function RequestForm({ onSubmit, isLoading = false }: RequestFormProps) {
   const [content, setContent] = useState('');
-  const [budget, setBudget] = useState('');
-  const [deadline, setDeadline] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: FormEvent) => {
@@ -31,13 +27,9 @@ export default function RequestForm({ onSubmit, isLoading = false }: RequestForm
     try {
       await onSubmit({
         content: content.trim(),
-        budget: budget ? parseFloat(budget) : undefined,
-        deadline: deadline || undefined,
       });
       // 成功后清空表单
       setContent('');
-      setBudget('');
-      setDeadline('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'UNKNOWN_ERROR');
     }
@@ -72,43 +64,6 @@ export default function RequestForm({ onSubmit, isLoading = false }: RequestForm
             }}
             disabled={isLoading}
           />
-        </div>
-
-        {/* Budget & Deadline Row */}
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Budget Input */}
-          <div className="space-y-2">
-            <label className="block text-xs text-[#52525b] tracking-wider uppercase">
-              Budget_Limit (Optional)
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00f5ff] text-sm">$</span>
-              <input
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className="w-full px-4 py-3 pl-8 bg-[#0a0a0f]/50 border border-[#27272a] text-[#e4e4e7] placeholder-[#52525b] font-mono text-sm focus:outline-none focus:border-[#00f5ff] transition-colors"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {/* Deadline Input */}
-          <div className="space-y-2">
-            <label className="block text-xs text-[#52525b] tracking-wider uppercase">
-              Deadline (Optional)
-            </label>
-            <input
-              type="datetime-local"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0a0a0f]/50 border border-[#27272a] text-[#e4e4e7] font-mono text-sm focus:outline-none focus:border-[#00f5ff] transition-colors [color-scheme:dark]"
-              disabled={isLoading}
-            />
-          </div>
         </div>
 
         {/* Error Message */}

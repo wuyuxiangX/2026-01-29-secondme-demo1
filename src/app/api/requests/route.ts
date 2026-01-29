@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken, getSession } from '@/lib/session';
-import { chat, getUserInfo } from '@/lib/secondme';
+import { getUserInfo } from '@/lib/secondme';
 import { prisma } from '@/lib/db';
-
-// 需求分析的系统提示词
-const ANALYSIS_SYSTEM_PROMPT = `你是一个专业的需求分析助手。用户会向你描述他们的需求，你需要分析这个需求并提取关键信息。
-
-请以 JSON 格式返回分析结果，包含以下字段：
-{
-  "summary": "需求的一句话总结",
-  "category": "需求类别 (如: 活动、物品、服务、技能等)",
-  "requirements": ["需要的具体资源列表"],
-  "preferences": ["用户的偏好或约束"],
-  "suggestedTags": ["推荐的匹配标签"]
-}
-
-只返回 JSON，不要有其他内容。`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +27,6 @@ export async function POST(request: NextRequest) {
 
     // 获取用户信息
     const userInfo = await getUserInfo(accessToken);
-    // 使用 email 作为用户唯一标识符
     const secondmeId = userInfo.email;
 
     if (!secondmeId) {
@@ -69,26 +54,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 调用 SecondMe Chat API 分析需求
-    let analysis = null;
-    try {
-      const analysisPrompt = `请分析以下需求：\n\n${content}\n\n${budget ? `预算：${budget}元` : ''}\n${deadline ? `截止时间：${deadline}` : ''}`;
-
-      const chatResult = await chat(accessToken, {
-        message: analysisPrompt,
-        systemPrompt: ANALYSIS_SYSTEM_PROMPT,
-      });
-
-      // 尝试解析 JSON
-      const jsonMatch = chatResult.content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      }
-    } catch (err) {
-      console.error('Failed to analyze request:', err);
-      // 分析失败不阻止创建需求
-    }
-
     // 创建需求记录
     const newRequest = await prisma.request.create({
       data: {
@@ -96,7 +61,6 @@ export async function POST(request: NextRequest) {
         content,
         budget: budget ? parseFloat(budget) : null,
         deadline: deadline ? new Date(deadline) : null,
-        analysis: analysis ? JSON.stringify(analysis) : null,
         status: 'pending',
       },
     });
@@ -108,7 +72,6 @@ export async function POST(request: NextRequest) {
         content: newRequest.content,
         budget: newRequest.budget,
         deadline: newRequest.deadline,
-        analysis,
         status: newRequest.status,
         createdAt: newRequest.createdAt,
       },
@@ -137,7 +100,6 @@ export async function GET() {
 
     // 获取用户信息
     const userInfo = await getUserInfo(accessToken);
-    // 使用 email 作为用户唯一标识符
     const secondmeId = userInfo.email;
 
     if (!secondmeId) {
@@ -154,9 +116,9 @@ export async function GET() {
         requests: {
           orderBy: { createdAt: 'desc' },
           include: {
-            offers: {
+            conversations: {
               include: {
-                user: {
+                targetUser: {
                   select: {
                     id: true,
                     name: true,
@@ -180,18 +142,18 @@ export async function GET() {
       content: req.content,
       budget: req.budget,
       deadline: req.deadline,
-      analysis: req.analysis ? JSON.parse(req.analysis) : null,
+      summary: req.summary,
       status: req.status,
       createdAt: req.createdAt,
-      offers: req.offers.map((offer) => ({
-        id: offer.id,
-        content: offer.content,
-        reasoning: offer.reasoning,
-        resource: offer.resource ? JSON.parse(offer.resource) : null,
-        status: offer.status,
-        user: offer.user,
-        createdAt: offer.createdAt,
+      conversations: req.conversations.map((conv) => ({
+        id: conv.id,
+        targetUser: conv.targetUser,
+        messages: JSON.parse(conv.messages),
+        summary: conv.summary,
+        status: conv.status,
+        createdAt: conv.createdAt,
       })),
+      conversationCount: req.conversations.length,
     }));
 
     return NextResponse.json({ requests });

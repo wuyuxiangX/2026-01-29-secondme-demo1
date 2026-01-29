@@ -3,13 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import RequestForm, { RequestFormData } from './RequestForm';
 import RequestList from './RequestList';
-import MatchResults from './MatchResults';
+import NetworkConversation from './NetworkConversation';
 
 interface Request {
   id: string;
   content: string;
-  budget?: number;
-  deadline?: string;
   analysis?: {
     summary?: string;
     category?: string;
@@ -90,7 +88,7 @@ interface RequestAnalysis {
   questions?: string[];
 }
 
-type Phase = 'idle' | 'analyzing' | 'matching' | 'results';
+type Phase = 'idle' | 'broadcasting' | 'chatting' | 'completed';
 
 export default function DashboardClient() {
   const [requests, setRequests] = useState<Request[]>([]);
@@ -98,12 +96,9 @@ export default function DashboardClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Agent 协商状态
+  // 网络对话状态
   const [phase, setPhase] = useState<Phase>('idle');
-  const [sessionId, setSessionId] = useState('');
-  const [analysis, setAnalysis] = useState<RequestAnalysis | null>(null);
-  const [offers, setOffers] = useState<MatchOffer[]>([]);
-  const [summary, setSummary] = useState<MatchSummary | null>(null);
+  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -137,80 +132,50 @@ export default function DashboardClient() {
     fetchRequests();
   }, [fetchRequests]);
 
-  // 重置协商状态
-  const resetNegotiation = () => {
+  // 重置对话状态
+  const resetConversation = () => {
     setPhase('idle');
-    setAnalysis(null);
-    setOffers([]);
-    setSummary(null);
+    setCurrentRequestId(null);
     setLogs([]);
-    setSessionId('');
   };
 
-  // 提交新需求并自动触发 Agent 匹配
+  // 提交新需求并广播到网络
   const handleSubmit = async (formData: RequestFormData) => {
     setIsSubmitting(true);
     setError(null);
-    resetNegotiation();
+    resetConversation();
 
     try {
-      // 阶段1：分析需求
-      setPhase('analyzing');
+      // 广播到网络
+      setPhase('broadcasting');
       setLogs([]);
-      addLog('🔍 正在分析您的需求...');
+      addLog('📡 正在广播您的需求到网络...');
+      addLog('🌐 正在寻找网络中的用户...');
 
-      const analyzeRes = await fetch('/api/agent/analyze', {
+      const broadcastRes = await fetch('/api/network/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      if (!analyzeRes.ok) throw new Error('分析请求失败');
+      if (!broadcastRes.ok) {
+        const errorData = await broadcastRes.json();
+        throw new Error(errorData.error || '广播失败');
+      }
 
-      const analyzeData = await analyzeRes.json();
-      setAnalysis(analyzeData.data.analysis);
+      const broadcastData = await broadcastRes.json();
 
-      addLog(`✅ 需求分析完成: ${analyzeData.data.analysis.summary}`);
-      addLog(`📋 类别: ${analyzeData.data.analysis.category}`);
-      addLog(`🏷️ 标签: ${analyzeData.data.analysis.tags.join(', ')}`);
+      addLog(`✅ 广播完成！找到 ${broadcastData.data.totalUsers} 个用户`);
+      addLog(`📨 成功对话: ${broadcastData.data.successCount} 个`);
 
-      // 阶段2：网络匹配
-      setPhase('matching');
-      addLog('🌐 正在扫描 Agent 网络...');
-      addLog('🤖 老王的 Agent 正在分析资源...');
-      addLog('🤖 小李的 Agent 正在分析资源...');
-      addLog('🤖 阿亮的 Agent 正在分析资源...');
-      addLog('🤖 阿芳的 Agent 正在分析资源...');
-      addLog('🤖 老周的 Agent 正在分析资源...');
+      if (broadcastData.data.conversations) {
+        for (const conv of broadcastData.data.conversations) {
+          addLog(`💬 ${conv.userName}: ${conv.firstReply.slice(0, 50)}...`);
+        }
+      }
 
-      const matchRes = await fetch('/api/agent/match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (!matchRes.ok) throw new Error('匹配请求失败');
-
-      const matchData = await matchRes.json();
-
-      setSessionId(matchData.data.sessionId);
-      setOffers(matchData.data.offers);
-      setSummary(matchData.data.summary);
-
-      addLog(`✅ 匹配完成! 找到 ${matchData.data.summary.totalOffers} 个匹配`);
-      addLog(`🎯 高匹配: ${matchData.data.summary.highMatches} 个`);
-
-      // 同时保存到数据库
-      await fetch('/api/requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          analysis: analyzeData.data.analysis,
-        }),
-      });
-
-      setPhase('results');
+      setCurrentRequestId(broadcastData.data.requestId);
+      setPhase('chatting');
       await fetchRequests();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -221,43 +186,11 @@ export default function DashboardClient() {
     }
   };
 
-  // 触发 Agent 网络匹配（用于已有需求）
-  const handleMatch = async (requestId: string) => {
-    const request = requests.find(r => r.id === requestId);
-    if (!request) return;
-
-    resetNegotiation();
-    setPhase('matching');
-    setLogs([]);
-    addLog('🌐 正在扫描 Agent 网络...');
-
-    try {
-      const matchRes = await fetch('/api/agent/match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: request.content,
-          budget: request.budget,
-          deadline: request.deadline,
-        }),
-      });
-
-      if (!matchRes.ok) throw new Error('匹配请求失败');
-
-      const matchData = await matchRes.json();
-
-      setSessionId(matchData.data.sessionId);
-      setAnalysis(matchData.data.analysis);
-      setOffers(matchData.data.offers);
-      setSummary(matchData.data.summary);
-
-      addLog(`✅ 匹配完成! 找到 ${matchData.data.summary.totalOffers} 个匹配`);
-      setPhase('results');
-    } catch (err) {
-      console.error('Match error:', err);
-      addLog(`❌ 错误: ${err}`);
-      setPhase('idle');
-    }
+  // 查看已有需求的对话
+  const handleViewConversations = async (requestId: string) => {
+    resetConversation();
+    setCurrentRequestId(requestId);
+    setPhase('chatting');
   };
 
   return (
@@ -284,7 +217,7 @@ export default function DashboardClient() {
         <RequestForm onSubmit={handleSubmit} isLoading={isSubmitting} />
       </section>
 
-      {/* Agent 协商进度和结果 */}
+      {/* 网络对话进度和结果 */}
       {phase !== 'idle' && (
         <section>
           <div className="flex items-center gap-3 mb-6">
@@ -293,12 +226,12 @@ export default function DashboardClient() {
               className="text-xl font-semibold tracking-wide"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              AGENT_NEGOTIATION
+              NETWORK_CONVERSATION
             </h2>
             <div className="flex-1 h-px bg-gradient-to-r from-[#8b5cf6]/30 to-transparent" />
-            {phase === 'results' && (
+            {(phase === 'chatting' || phase === 'completed') && (
               <button
-                onClick={resetNegotiation}
+                onClick={resetConversation}
                 className="text-xs text-[#52525b] hover:text-[#00f5ff] transition-colors"
               >
                 [CLOSE]
@@ -306,23 +239,23 @@ export default function DashboardClient() {
             )}
           </div>
 
-          {/* 处理中状态 */}
-          {(phase === 'analyzing' || phase === 'matching') && (
+          {/* 广播中状态 */}
+          {phase === 'broadcasting' && (
             <div className="cyber-card p-6">
               {/* 进度指示器 */}
               <div className="flex items-center justify-center gap-4 mb-6">
-                <div className={`flex items-center gap-2 ${phase === 'analyzing' ? 'text-[#00f5ff]' : 'text-green-400'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${phase === 'analyzing' ? 'bg-[#00f5ff]/20 animate-pulse' : 'bg-green-500/20'}`}>
-                    {phase === 'analyzing' ? '🔍' : '✓'}
+                <div className="flex items-center gap-2 text-[#00f5ff]">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#00f5ff]/20 animate-pulse">
+                    📡
                   </div>
-                  <span className="text-sm">ANALYZE</span>
+                  <span className="text-sm">BROADCAST</span>
                 </div>
                 <div className="w-8 h-0.5 bg-[#00f5ff]/30" />
-                <div className={`flex items-center gap-2 ${phase === 'matching' ? 'text-[#00f5ff]' : 'text-[#52525b]'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${phase === 'matching' ? 'bg-[#00f5ff]/20 animate-pulse' : 'bg-[#52525b]/20'}`}>
-                    🌐
+                <div className="flex items-center gap-2 text-[#52525b]">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#52525b]/20">
+                    💬
                   </div>
-                  <span className="text-sm">MATCH</span>
+                  <span className="text-sm">CHAT</span>
                 </div>
               </div>
 
@@ -337,51 +270,15 @@ export default function DashboardClient() {
             </div>
           )}
 
-          {/* 结果展示 */}
-          {phase === 'results' && summary && (
-            <div className="space-y-4">
-              {/* 需求分析卡片 */}
-              {analysis && (
-                <div className="cyber-card p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[#ff00ff]">{'<>'}</span>
-                    <span className="text-sm font-semibold tracking-wide" style={{ fontFamily: 'var(--font-display)' }}>
-                      ANALYSIS_RESULT
-                    </span>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-[#52525b]">SUMMARY: </span>
-                      <span className="text-[#e4e4e7]">{analysis.summary}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#52525b]">CATEGORY: </span>
-                      <span className="text-[#00f5ff]">{analysis.category}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {analysis.tags.map((tag, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-[#8b5cf6]/20 text-[#8b5cf6] text-xs border border-[#8b5cf6]/30">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 匹配结果 */}
-              <MatchResults
-                offers={offers}
-                summary={summary}
-                sessionId={sessionId}
-                onAccept={(id) => {
-                  setOffers(offers.map(o => o.id === id ? { ...o, status: 'accepted' } : o));
-                }}
-                onReject={(id) => {
-                  setOffers(offers.map(o => o.id === id ? { ...o, status: 'rejected' } : o));
-                }}
-              />
-            </div>
+          {/* 对话展示 */}
+          {(phase === 'chatting' || phase === 'completed') && currentRequestId && (
+            <NetworkConversation
+              requestId={currentRequestId}
+              onComplete={() => {
+                setPhase('completed');
+                fetchRequests();
+              }}
+            />
           )}
         </section>
       )}
@@ -416,7 +313,7 @@ export default function DashboardClient() {
             </div>
           </div>
         ) : (
-          <RequestList requests={requests} onMatch={handleMatch} />
+          <RequestList requests={requests} onViewConversation={handleViewConversations} />
         )}
       </section>
 
