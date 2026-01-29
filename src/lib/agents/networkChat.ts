@@ -67,31 +67,27 @@ async function ensureValidToken(user: DbUser): Promise<string> {
 
 /**
  * 和某个用户的 AI 分身对话
+ * 使用 SecondMe sessionId 实现原生多轮对话
  */
 export async function chatWithUserAgent(
   targetUser: DbUser,
   message: string,
-  history: Message[] = []
-): Promise<string> {
+  sessionId?: string
+): Promise<{ content: string; sessionId: string }> {
   const accessToken = await ensureValidToken(targetUser);
 
-  // 构建上下文
-  let context = '';
-  if (history.length > 0) {
-    context = '之前的对话：\n';
-    for (const msg of history.slice(-5)) {
-      context += `${msg.role === 'requester' ? '需求方' : '你'}：${msg.content}\n`;
-    }
-    context += '\n';
-  }
+  console.log(`[NetworkChat] Chatting with ${targetUser.name || targetUser.id}${sessionId ? ` (session: ${sessionId.slice(0, 8)}...)` : ' (new session)'}...`);
 
-  const fullMessage = context + `需求方说：${message}`;
+  // 使用 SecondMe sessionId 实现多轮对话
+  const response = await chat(accessToken, {
+    message,
+    sessionId,
+  });
 
-  console.log(`[NetworkChat] Chatting with ${targetUser.name || targetUser.id}...`);
-
-  const response = await chat(accessToken, { message: fullMessage });
-
-  return response.content;
+  return {
+    content: response.content,
+    sessionId: response.sessionId,
+  };
 }
 
 /**
@@ -127,8 +123,8 @@ export async function broadcastRequest(
       // 构造初始消息
       const initialMessage = `你好！有人发布了一个需求，想问问你是否有资源可以帮忙：\n\n${requestContent}\n\n请根据你的情况，告诉我你是否有相关资源可以提供，或者有什么建议。`;
 
-      // 和用户 AI 分身对话
-      const reply = await chatWithUserAgent(user, initialMessage);
+      // 和用户 AI 分身对话，获取回复和 sessionId
+      const { content: reply, sessionId } = await chatWithUserAgent(user, initialMessage);
 
       // 创建对话记录
       const messages: Message[] = [
@@ -141,6 +137,7 @@ export async function broadcastRequest(
           requestId,
           targetUserId: user.id,
           messages: JSON.stringify(messages),
+          secondmeSessionId: sessionId,  // 保存 SecondMe sessionId
           status: 'ongoing',
         },
       });
@@ -184,6 +181,7 @@ export async function broadcastRequest(
 
 /**
  * 继续和某个用户对话
+ * 使用 SecondMe sessionId 实现原生多轮对话
  */
 export async function continueConversation(
   conversationId: string,
@@ -209,8 +207,12 @@ export async function continueConversation(
     timestamp: new Date().toISOString(),
   });
 
-  // 调用用户 AI 分身
-  const reply = await chatWithUserAgent(conversation.targetUser, message, history);
+  // 使用 SecondMe sessionId 实现原生多轮对话
+  const { content: reply, sessionId } = await chatWithUserAgent(
+    conversation.targetUser,
+    message,
+    conversation.secondmeSessionId || undefined
+  );
 
   // 添加回复
   history.push({
@@ -219,10 +221,13 @@ export async function continueConversation(
     timestamp: new Date().toISOString(),
   });
 
-  // 更新对话记录
+  // 更新对话记录和 sessionId
   await prisma.conversation.update({
     where: { id: conversationId },
-    data: { messages: JSON.stringify(history) },
+    data: {
+      messages: JSON.stringify(history),
+      secondmeSessionId: sessionId,
+    },
   });
 
   return { reply, messages: history };

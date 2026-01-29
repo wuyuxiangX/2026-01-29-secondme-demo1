@@ -41,14 +41,15 @@ model Request {
 
 // 对话记录：发布者和某个用户的对话
 model Conversation {
-  id           String   @id @default(cuid())
-  requestId    String
-  request      Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  targetUserId String   // 对话对象的用户 ID
-  targetUser   User     @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
-  messages     String   // JSON 数组：[{role, content, timestamp}]
-  summary      String?  // 这段对话的摘要
-  status       String   @default("ongoing") // ongoing, completed
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default(cuid())
+  requestId         String
+  request           Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  targetUserId      String   // 对话对象的用户 ID
+  targetUser        User     @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+  messages          String   // JSON 数组：[{role, content, timestamp}]
+  secondmeSessionId String?  // SecondMe 会话 ID，用于多轮对话
+  summary           String?  // 这段对话的摘要
+  status            String   @default("ongoing") // ongoing, completed
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
