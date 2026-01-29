@@ -1,7 +1,8 @@
-import { getAccessToken, getRefreshToken } from '@/lib/session';
+import { getAccessToken, getRefreshToken, getSession } from '@/lib/session';
 import { getUserInfo, getUserShades, refreshAccessToken } from '@/lib/secondme';
 import { setSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
+import { prisma } from '@/lib/prisma';
 import UserProfile from '@/components/UserProfile';
 import DashboardClient from '@/components/DashboardClient';
 
@@ -32,6 +33,29 @@ export default async function DashboardPage() {
       getUserInfo(accessToken),
       getUserShades(accessToken),
     ]);
+
+    // 自动将用户加入网络（创建或更新用户记录）
+    const session = await getSession();
+    if (session && userInfo.email) {
+      await prisma.user.upsert({
+        where: { secondmeId: userInfo.email },
+        update: {
+          name: userInfo.name,
+          avatar: userInfo.avatar,
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          tokenExpiry: new Date(session.expiresAt),
+        },
+        create: {
+          secondmeId: userInfo.email,
+          name: userInfo.name,
+          avatar: userInfo.avatar,
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          tokenExpiry: new Date(session.expiresAt),
+        },
+      });
+    }
   } catch (error) {
     console.error('Failed to fetch user data:', error);
     redirect('/');

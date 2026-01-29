@@ -18,7 +18,7 @@ CREATE TABLE "Request" (
     "content" TEXT NOT NULL,
     "budget" REAL,
     "deadline" DATETIME,
-    "analysis" TEXT,
+    "summary" TEXT,
     "status" TEXT NOT NULL DEFAULT 'pending',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
@@ -26,18 +26,17 @@ CREATE TABLE "Request" (
 );
 
 -- CreateTable
-CREATE TABLE "Offer" (
+CREATE TABLE "Conversation" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "requestId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "reasoning" TEXT,
-    "resource" TEXT,
-    "status" TEXT NOT NULL DEFAULT 'pending',
+    "targetUserId" TEXT NOT NULL,
+    "messages" TEXT NOT NULL,
+    "summary" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ongoing',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Offer_requestId_fkey" FOREIGN KEY ("requestId") REFERENCES "Request" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "Offer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "Conversation_requestId_fkey" FOREIGN KEY ("requestId") REFERENCES "Request" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "Conversation_targetUserId_fkey" FOREIGN KEY ("targetUserId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateIndex

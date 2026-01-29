@@ -6,15 +6,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { broadcastRequest } from '@/lib/agents';
-import { getAccessToken, getSession } from '@/lib/session';
-import { getUserInfo } from '@/lib/secondme';
+import { getAccessToken, getSession, getRefreshToken, setSession } from '@/lib/session';
+import { getUserInfo, refreshAccessToken } from '@/lib/secondme';
 
 export async function POST(request: NextRequest) {
   try {
-    const accessToken = await getAccessToken();
-    const session = await getSession();
+    let accessToken = await getAccessToken();
+    let session = await getSession();
 
-    if (!accessToken || !session) {
+    // 如果 token 过期，尝试刷新
+    if (!accessToken) {
+      const refreshToken = await getRefreshToken();
+      if (refreshToken) {
+        try {
+          const newTokenData = await refreshAccessToken(refreshToken);
+          await setSession(newTokenData);
+          accessToken = newTokenData.accessToken;
+          session = await getSession();
+        } catch (error) {
+          console.error('[API] Token refresh failed:', error);
+          return NextResponse.json({ error: '登录已过期，请重新登录' }, { status: 401 });
+        }
+      } else {
+        return NextResponse.json({ error: '请先登录' }, { status: 401 });
+      }
+    }
+
+    if (!session) {
       return NextResponse.json({ error: '请先登录' }, { status: 401 });
     }
 
