@@ -4,11 +4,13 @@ import { SummaryCardProps } from './types';
 
 export function SummaryCard({ summary, totalCount, completedCount }: SummaryCardProps) {
   return (
-    <div className="summary-highlight cyber-card rounded-lg p-6 mt-6">
+    <div className="card p-6 border-purple-100 bg-purple-50/50">
       {/* 标题 */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-2xl">⚡</span>
-        <h3 className="text-lg font-bold neon-text text-[#8b5cf6]">
+      <div className="flex items-center gap-2 mb-4">
+        <svg className="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 className="text-lg font-medium text-purple-700">
           网络对话总结
         </h3>
       </div>
@@ -16,24 +18,24 @@ export function SummaryCard({ summary, totalCount, completedCount }: SummaryCard
       {/* 统计信息 */}
       <div className="flex gap-6 mb-4 text-sm">
         <div className="flex items-center gap-2">
-          <span className="text-[#52525b]">对话总数:</span>
-          <span className="text-[#00f5ff] font-mono">{totalCount}</span>
+          <span className="text-slate-500">对话总数:</span>
+          <span className="text-blue-500 font-medium">{totalCount}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[#52525b]">已完成:</span>
-          <span className="text-green-400 font-mono">{completedCount}</span>
+          <span className="text-slate-500">已完成:</span>
+          <span className="text-green-500 font-medium">{completedCount}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[#52525b]">进行中:</span>
-          <span className="text-[#ff00ff] font-mono">{totalCount - completedCount}</span>
+          <span className="text-slate-500">进行中:</span>
+          <span className="text-purple-500 font-medium">{totalCount - completedCount}</span>
         </div>
       </div>
 
       {/* 分隔线 */}
-      <div className="h-px bg-gradient-to-r from-transparent via-[#8b5cf6]/50 to-transparent my-4" />
+      <div className="h-px bg-purple-200/50 my-4" />
 
       {/* 总结内容 */}
-      <div className="text-[#e4e4e7] text-sm leading-relaxed whitespace-pre-wrap">
+      <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
         {summary}
       </div>
     </div>

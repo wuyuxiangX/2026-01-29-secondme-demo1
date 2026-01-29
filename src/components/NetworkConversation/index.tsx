@@ -133,16 +133,22 @@ export function NetworkConversation({
 
   if (isLoading) {
     return (
-      <div className="cyber-card rounded-lg p-8 text-center">
-        <div className="animate-pulse text-[#00f5ff]">加载对话中...</div>
+      <div className="card p-8 text-center">
+        <div className="flex items-center justify-center gap-2 text-slate-400">
+          <svg className="w-5 h-5 loading" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>加载对话中...</span>
+        </div>
       </div>
     );
   }
 
   if (conversations.length === 0) {
     return (
-      <div className="cyber-card rounded-lg p-8 text-center">
-        <div className="text-[#52525b]">暂无对话</div>
+      <div className="card p-8 text-center">
+        <p className="text-slate-400">暂无对话</p>
       </div>
     );
   }
@@ -151,26 +157,25 @@ export function NetworkConversation({
     <div className="space-y-4">
       {/* 标题栏 */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-xl">📡</span>
-          <h2 className="text-lg font-bold text-[#e4e4e7]">
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-medium text-slate-900">
             网络对话
-            <span className="text-sm font-normal text-[#52525b] ml-2">
-              共 {totalCount} 人
-            </span>
-          </h2>
+          </span>
+          <span className="text-sm text-slate-400">
+            共 {totalCount} 人
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={fetchConversations}
-            className="px-3 py-1.5 text-xs text-[#52525b] hover:text-[#00f5ff] border border-[#52525b]/30 hover:border-[#00f5ff]/30 rounded transition-all"
+            className="btn btn-secondary text-sm py-1.5 px-3"
           >
             刷新
           </button>
           <button
             onClick={handleGenerateSummary}
             disabled={isSummarizing}
-            className="px-4 py-1.5 text-sm bg-gradient-to-r from-[#8b5cf6]/20 to-[#ff00ff]/20 border border-[#8b5cf6]/50 rounded text-[#8b5cf6] hover:bg-[#8b5cf6]/20 disabled:opacity-50 transition-all"
+            className="btn btn-primary text-sm py-1.5 px-3"
           >
             {isSummarizing ? '生成中...' : '生成总结'}
           </button>
@@ -179,7 +184,7 @@ export function NetworkConversation({
 
       {/* 错误提示 */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-400">
+        <div className="px-4 py-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">
           {error}
         </div>
       )}

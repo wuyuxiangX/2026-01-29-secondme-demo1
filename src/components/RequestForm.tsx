@@ -20,7 +20,7 @@ export default function RequestForm({ onSubmit, isLoading = false }: RequestForm
     setError('');
 
     if (!content.trim()) {
-      setError('REQUEST_CONTENT_REQUIRED');
+      setError('请输入需求内容');
       return;
     }
 
@@ -31,85 +31,58 @@ export default function RequestForm({ onSubmit, isLoading = false }: RequestForm
       // 成功后清空表单
       setContent('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'UNKNOWN_ERROR');
+      setError(err instanceof Error ? err.message : '发生未知错误');
     }
   };
 
   return (
-    <div className="cyber-card corner-decoration p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <span className="text-[#00f5ff] text-lg">{'>'}</span>
-        <h3
-          className="text-lg font-semibold tracking-wide"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          NEW_REQUEST
-        </h3>
-        <div className="flex-1 h-px bg-gradient-to-r from-[#00f5ff]/30 to-transparent" />
-      </div>
+    <div className="card p-6">
+      <h3 className="font-medium text-slate-900 mb-4">发布新需求</h3>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Content Input */}
-        <div className="space-y-2">
-          <label className="block text-xs text-[#52525b] tracking-wider uppercase">
-            Request_Description
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 内容输入 */}
+        <div>
+          <label className="block text-sm text-slate-600 mb-2">
+            需求描述
           </label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="// 输入你的需求... 例如：我想办一场户外电影之夜，邀请朋友来。我什么都没有，预算 200 块。"
-            className="w-full h-32 px-4 py-3 bg-[#0a0a0f]/50 border border-[#27272a] text-[#e4e4e7] placeholder-[#52525b] font-mono text-sm resize-none focus:outline-none focus:border-[#00f5ff] transition-colors"
-            style={{
-              clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))',
-            }}
+            placeholder="输入你的需求... 例如：我想办一场户外电影之夜，邀请朋友来。我什么都没有，预算 200 块。"
+            className="input h-32 resize-none"
             disabled={isLoading}
           />
         </div>
 
-        {/* Error Message */}
+        {/* 错误消息 */}
         {error && (
-          <div className="px-4 py-2 border border-[#ff00ff]/50 bg-[#ff00ff]/10 text-[#ff00ff] text-sm font-mono">
-            [ ERROR ] {error}
+          <div className="px-4 py-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">
+            {error}
           </div>
         )}
 
-        {/* Submit Button */}
+        {/* 提交按钮 */}
         <button
           type="submit"
           disabled={isLoading}
-          className="group relative w-full px-8 py-4 border-2 border-[#00f5ff] text-[#00f5ff] font-bold tracking-wider transition-all duration-300 hover:bg-[#00f5ff]/10 hover:shadow-[0_0_20px_rgba(0,245,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            fontFamily: 'var(--font-display)',
-            clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))',
-          }}
+          className="btn btn-primary w-full"
         >
-          <span className="relative z-10 flex items-center justify-center gap-3">
-            {isLoading ? (
-              <>
-                <span className="animate-pulse">ANALYZING</span>
-                <span className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-[#00f5ff] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 bg-[#00f5ff] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 bg-[#00f5ff] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </span>
-              </>
-            ) : (
-              <>
-                <span>BROADCAST_REQUEST</span>
-                <span className="group-hover:translate-x-1 transition-transform">{'>'}</span>
-              </>
-            )}
-          </span>
-
-          {/* Hover glow effect */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00f5ff]/20 to-transparent" />
-          </div>
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 loading" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              分析中...
+            </span>
+          ) : (
+            '广播需求'
+          )}
         </button>
 
-        {/* Helper text */}
-        <p className="text-center text-xs text-[#52525b]">
-          // 你的需求将被 AI 分析，并广播到 Agent 网络
+        {/* 帮助文字 */}
+        <p className="text-center text-xs text-slate-400">
+          你的需求将被 AI 分析，并广播到 Agent 网络
         </p>
       </form>
     </div>

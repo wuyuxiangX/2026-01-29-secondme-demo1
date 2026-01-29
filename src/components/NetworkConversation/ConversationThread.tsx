@@ -48,40 +48,34 @@ export function ConversationThread({
   const sending = isLocalSending || isSending;
 
   return (
-    <div className="cyber-card rounded-lg overflow-hidden flex flex-col h-[400px]">
+    <div className="card overflow-hidden flex flex-col h-[400px]">
       {/* 头部 */}
-      <div className="flex items-center justify-between p-3 border-b border-[#00f5ff]/20">
+      <div className="flex items-center justify-between p-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
           {conversation.targetUserAvatar ? (
             <img
               src={conversation.targetUserAvatar}
               alt={conversation.targetUserName}
-              className="w-8 h-8 rounded-full border border-[#00f5ff]/30"
+              className="w-8 h-8 rounded-full"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00f5ff]/20 to-[#ff00ff]/20 flex items-center justify-center border border-[#00f5ff]/30">
-              <span className="text-xs text-[#00f5ff]">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <span className="text-sm text-blue-500 font-medium">
                 {conversation.targetUserName.charAt(0).toUpperCase()}
               </span>
             </div>
           )}
-          <span className="text-sm font-medium text-[#e4e4e7]">
+          <span className="text-sm font-medium text-slate-900">
             {conversation.targetUserName}
           </span>
         </div>
-        <span
-          className={`text-xs px-2 py-0.5 rounded ${
-            isCompleted
-              ? 'bg-green-500/20 text-green-400'
-              : 'bg-[#00f5ff]/20 text-[#00f5ff]'
-          }`}
-        >
+        <span className={`tag text-xs ${isCompleted ? 'tag-success' : 'tag-primary'}`}>
           {isCompleted ? '已完成' : '进行中'}
         </span>
       </div>
 
       {/* 消息区域 */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-[#00f5ff]/20">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin bg-slate-50">
         {conversation.messages.map((msg, index) => (
           <MessageBubble key={index} message={msg} userName={conversation.targetUserName} />
         ))}
@@ -89,9 +83,9 @@ export function ConversationThread({
           <div className="flex justify-end">
             <div className="message-agent rounded-lg px-3 py-2 max-w-[80%]">
               <div className="typing-indicator flex gap-1">
-                <span className="w-1.5 h-1.5 bg-[#ff00ff] rounded-full" />
-                <span className="w-1.5 h-1.5 bg-[#ff00ff] rounded-full" />
-                <span className="w-1.5 h-1.5 bg-[#ff00ff] rounded-full" />
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
               </div>
             </div>
           </div>
@@ -101,7 +95,7 @@ export function ConversationThread({
 
       {/* 输入区域 */}
       {!isCompleted ? (
-        <div className="p-3 border-t border-[#00f5ff]/20 space-y-2">
+        <div className="p-3 border-t border-slate-100 space-y-2">
           <div className="flex gap-2">
             <input
               type="text"
@@ -110,26 +104,26 @@ export function ConversationThread({
               onKeyDown={handleKeyDown}
               placeholder="输入消息..."
               disabled={sending}
-              className="flex-1 bg-[#0a0a0f] border border-[#00f5ff]/30 rounded px-3 py-2 text-sm text-[#e4e4e7] placeholder-[#52525b] focus:outline-none focus:border-[#00f5ff] disabled:opacity-50"
+              className="input flex-1 py-2 text-sm"
             />
             <button
               onClick={handleSend}
               disabled={!message.trim() || sending}
-              className="px-4 py-2 bg-gradient-to-r from-[#00f5ff]/20 to-[#00f5ff]/10 border border-[#00f5ff]/50 rounded text-[#00f5ff] text-sm hover:bg-[#00f5ff]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="btn btn-primary py-2 px-4 text-sm disabled:opacity-50"
             >
               {sending ? '...' : '发送'}
             </button>
           </div>
           <button
             onClick={handleComplete}
-            className="w-full py-1.5 text-xs text-[#52525b] hover:text-green-400 border border-transparent hover:border-green-400/30 rounded transition-all"
+            className="w-full py-1.5 text-xs text-slate-400 hover:text-green-500 border border-transparent hover:border-green-200 rounded-lg transition-all"
           >
             标记完成
           </button>
         </div>
       ) : (
-        <div className="p-3 border-t border-[#00f5ff]/20">
-          <div className="text-center text-xs text-green-400/70 py-2">
+        <div className="p-3 border-t border-slate-100">
+          <div className="text-center text-xs text-green-500 py-2">
             对话已完成
           </div>
         </div>
@@ -145,14 +139,16 @@ function MessageBubble({ message, userName }: { message: Message; userName: stri
   return (
     <div className={`flex ${isRequester ? 'justify-start' : 'justify-end'}`}>
       <div
-        className={`rounded-lg px-3 py-2 max-w-[85%] ${
-          isRequester ? 'message-requester' : 'message-agent'
+        className={`rounded-2xl px-4 py-2 max-w-[85%] ${
+          isRequester
+            ? 'bg-white border border-slate-200 rounded-bl-sm'
+            : 'bg-blue-500 text-white rounded-br-sm'
         }`}
       >
-        <div className="text-[10px] text-[#52525b] mb-1">
+        <div className={`text-xs mb-1 ${isRequester ? 'text-slate-400' : 'text-blue-100'}`}>
           {isRequester ? '需求方' : userName}
         </div>
-        <div className="text-sm text-[#e4e4e7] whitespace-pre-wrap break-words">
+        <div className={`text-sm whitespace-pre-wrap break-words ${isRequester ? 'text-slate-700' : 'text-white'}`}>
           {message.content}
         </div>
       </div>

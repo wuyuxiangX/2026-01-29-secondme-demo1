@@ -62,67 +62,71 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-[#00f5ff]/10 bg-[#0a0a0f]/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 border-2 border-[#00f5ff] flex items-center justify-center">
-              <span className="text-[#00f5ff] font-bold" style={{ fontFamily: 'var(--font-display)' }}>S</span>
-            </div>
-            <div>
-              <span className="text-[#a1a1aa] text-sm tracking-widest uppercase">SecondMe</span>
-              <span className="text-[#52525b] text-xs ml-2">/ DASHBOARD</span>
+      <header className="sticky top-0 z-50 bg-white border-b border-slate-100">
+        <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3 md:px-6">
+          <div className="flex items-center gap-3">
+            <a href="/dashboard" className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">S</span>
+            </a>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-600 font-medium">SecondMe</span>
+              <span className="text-slate-300">/</span>
+              <span className="text-slate-400 text-sm">控制台</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             {/* Marketplace Link */}
             <a
               href="/marketplace"
-              className="px-4 py-2 border border-[#ff00ff] text-[#ff00ff] text-xs tracking-wider uppercase hover:bg-[#ff00ff]/10 transition-colors"
+              className="btn btn-secondary text-sm py-2 px-4"
             >
-              MARKETPLACE
+              需求市场
             </a>
 
             {/* Status */}
-            <div className="flex items-center gap-2 text-xs text-[#52525b]">
-              <span className="w-2 h-2 bg-[#00f5ff] rounded-full pulse-glow" />
-              <span>CONNECTED</span>
+            <div className="hidden md:flex items-center gap-2 text-sm text-slate-400">
+              <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+              <span>已连接</span>
             </div>
 
             {/* Logout */}
             <a
               href="/api/auth/logout"
-              className="px-4 py-2 border border-[#52525b] text-[#a1a1aa] text-xs tracking-wider uppercase hover:border-[#ff00ff] hover:text-[#ff00ff] transition-colors"
+              className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
             >
-              DISCONNECT
+              退出
             </a>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-10">
-        <UserProfile user={userInfo} shades={userShades} />
+      <main className="max-w-5xl mx-auto px-4 py-6 md:px-6 md:py-8">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left: User Profile */}
+          <div className="lg:col-span-1">
+            <UserProfile user={userInfo} shades={userShades} />
+          </div>
 
-        {/* Agent Network Section */}
-        <div className="mt-10">
-          <DashboardClient />
+          {/* Right: Agent Network */}
+          <div className="lg:col-span-2">
+            <DashboardClient />
+          </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#00f5ff]/10 py-6 mt-10">
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-[#52525b]">
-          <div className="flex items-center gap-4">
-            <span>SESSION ACTIVE</span>
-            <span className="w-1 h-1 bg-[#52525b] rounded-full" />
-            <span>TOKEN VALID</span>
+      <footer className="border-t border-slate-100 py-4 mt-8">
+        <div className="max-w-5xl mx-auto px-4 md:px-6 flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center gap-3">
+            <span>会话活跃</span>
+            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+            <span>Token 有效</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span>PROTOCOL v0.1.0</span>
-          </div>
+          <span>版本 v0.1.0</span>
         </div>
       </footer>
     </div>

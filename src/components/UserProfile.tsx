@@ -9,168 +9,97 @@ interface UserProfileProps {
 export default function UserProfile({ user, shades }: UserProfileProps) {
   if (!user) {
     return (
-      <div className="cyber-card p-8 text-center">
-        <p className="text-[#ff00ff]">[ ERROR ] UNABLE TO LOAD USER DATA</p>
+      <div className="card p-6 text-center">
+        <p className="text-red-500">无法加载用户数据</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* User Identity Card */}
-      <div className="cyber-card corner-decoration p-8">
-        <div className="flex items-start gap-8">
-          {/* Avatar */}
+    <div className="space-y-4">
+      {/* 用户信息卡片 */}
+      <div className="card p-6">
+        <div className="flex items-start gap-4">
+          {/* 头像 */}
           <div className="relative">
             {user.avatar ? (
-              <div className="relative">
-                <Image
-                  src={user.avatar}
-                  alt={user.name || 'User avatar'}
-                  width={100}
-                  height={100}
-                  unoptimized
-                  className="w-24 h-24 object-cover"
-                  style={{
-                    clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))',
-                  }}
-                />
-                {/* Corner accents */}
-                <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#00f5ff]" />
-                <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#00f5ff]" />
-              </div>
+              <Image
+                src={user.avatar}
+                alt={user.name || '用户头像'}
+                width={64}
+                height={64}
+                unoptimized
+                className="w-16 h-16 rounded-full object-cover"
+              />
             ) : (
-              <div
-                className="w-24 h-24 bg-gradient-to-br from-[#00f5ff]/20 to-[#ff00ff]/20 flex items-center justify-center border border-[#00f5ff]/30"
-                style={{
-                  clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))',
-                }}
-              >
-                <span className="text-4xl text-[#00f5ff]" style={{ fontFamily: 'var(--font-display)' }}>
+              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+                <span className="text-2xl text-blue-500 font-medium">
                   {user.name?.[0]?.toUpperCase() || '?'}
                 </span>
               </div>
             )}
-            {/* Online indicator */}
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#0a0a0f] flex items-center justify-center">
-              <span className="w-2 h-2 bg-[#00f5ff] rounded-full pulse-glow" />
-            </div>
+            {/* 在线指示器 */}
+            <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></span>
           </div>
 
-          {/* User Info */}
+          {/* 用户信息 */}
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h2
-                className="text-2xl font-bold tracking-wide"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                {user.name || 'UNKNOWN_USER'}
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-lg font-semibold text-slate-900">
+                {user.name || '未知用户'}
               </h2>
-              <span className="px-2 py-0.5 border border-[#00f5ff]/50 text-[#00f5ff] text-xs tracking-wider">
-                VERIFIED
-              </span>
+              <span className="tag tag-success">已认证</span>
             </div>
 
             {user.email && (
-              <p className="text-[#a1a1aa] text-sm mb-3">{user.email}</p>
+              <p className="text-slate-500 text-sm">{user.email}</p>
             )}
 
-            <div className="flex items-center gap-4 text-xs text-[#52525b]">
-              {(user.id || user.openId) && (
-              <div className="flex items-center gap-2">
-                <span className="text-[#00f5ff]">ID:</span>
-                <span className="font-mono">{(user.id || user.openId)?.slice(0, 12)}...</span>
-              </div>
-              )}
-              <span className="w-1 h-1 bg-[#52525b] rounded-full" />
-              <span>AGENT_STATUS: ACTIVE</span>
-            </div>
+            {(user.id || user.openId) && (
+              <p className="text-slate-400 text-xs mt-1">
+                ID: {(user.id || user.openId)?.slice(0, 12)}...
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Shades (Interests) */}
-      <div className="cyber-card p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-[#00f5ff] text-lg">{'#'}</span>
-          <h3
-            className="text-lg font-semibold tracking-wide"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            INTEREST_SHADES
-          </h3>
-          <div className="flex-1 h-px bg-gradient-to-r from-[#00f5ff]/30 to-transparent" />
-        </div>
+      {/* 兴趣标签 */}
+      <div className="card p-6">
+        <h3 className="font-medium text-slate-900 mb-4">兴趣标签</h3>
 
         {shades && shades.length > 0 ? (
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             {shades.map((shade, index) => (
               <span
                 key={shade.id}
-                className="group relative px-4 py-2 border text-sm tracking-wide transition-all duration-300 cursor-default"
-                style={{
-                  borderColor: index % 3 === 0 ? '#00f5ff' : index % 3 === 1 ? '#ff00ff' : '#8b5cf6',
-                  color: index % 3 === 0 ? '#00f5ff' : index % 3 === 1 ? '#ff00ff' : '#8b5cf6',
-                }}
+                className={`tag ${index % 3 === 0 ? 'tag-primary' : index % 3 === 1 ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'}`}
                 title={shade.description}
               >
-                <span className="relative z-10">{shade.name}</span>
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity"
-                  style={{
-                    background: index % 3 === 0 ? '#00f5ff' : index % 3 === 1 ? '#ff00ff' : '#8b5cf6',
-                  }}
-                />
+                {shade.name}
               </span>
             ))}
           </div>
         ) : (
-          <p className="text-[#52525b]">[ NO SHADES DETECTED ]</p>
+          <p className="text-slate-400 text-sm">暂无兴趣标签</p>
         )}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <div className="cyber-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[#52525b] text-xs tracking-wider">REQUESTS</span>
-            <span className="text-[#00f5ff] text-xs">{'<>'}</span>
-          </div>
-          <div
-            className="text-4xl font-bold text-[#e4e4e7]"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            0
-          </div>
-          <div className="mt-2 h-px bg-gradient-to-r from-[#00f5ff]/50 to-transparent" />
+      {/* 统计数据 */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="card p-4 text-center">
+          <p className="text-2xl font-bold text-slate-900">0</p>
+          <p className="text-xs text-slate-500 mt-1">发布需求</p>
         </div>
 
-        <div className="cyber-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[#52525b] text-xs tracking-wider">OFFERS</span>
-            <span className="text-[#ff00ff] text-xs">{'{}'}</span>
-          </div>
-          <div
-            className="text-4xl font-bold text-[#e4e4e7]"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            0
-          </div>
-          <div className="mt-2 h-px bg-gradient-to-r from-[#ff00ff]/50 to-transparent" />
+        <div className="card p-4 text-center">
+          <p className="text-2xl font-bold text-slate-900">0</p>
+          <p className="text-xs text-slate-500 mt-1">提供资源</p>
         </div>
 
-        <div className="cyber-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[#52525b] text-xs tracking-wider">MATCHES</span>
-            <span className="text-[#8b5cf6] text-xs">{'>>'}</span>
-          </div>
-          <div
-            className="text-4xl font-bold text-[#e4e4e7]"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            0
-          </div>
-          <div className="mt-2 h-px bg-gradient-to-r from-[#8b5cf6]/50 to-transparent" />
+        <div className="card p-4 text-center">
+          <p className="text-2xl font-bold text-slate-900">0</p>
+          <p className="text-xs text-slate-500 mt-1">成功匹配</p>
         </div>
       </div>
     </div>

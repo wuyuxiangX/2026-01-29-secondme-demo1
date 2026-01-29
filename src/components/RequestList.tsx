@@ -37,26 +37,41 @@ export default function RequestList({ requests, onViewConversation }: RequestLis
     onViewConversation?.(requestId);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'text-[#fbbf24] border-[#fbbf24]';
+        return 'tag-warning';
       case 'matching':
-        return 'text-[#00f5ff] border-[#00f5ff]';
+        return 'tag-primary';
       case 'completed':
-        return 'text-[#22c55e] border-[#22c55e]';
+        return 'tag-success';
       case 'cancelled':
-        return 'text-[#52525b] border-[#52525b]';
+        return 'tag';
       default:
-        return 'text-[#a1a1aa] border-[#a1a1aa]';
+        return 'tag';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return '等待中';
+      case 'matching':
+        return '匹配中';
+      case 'completed':
+        return '已完成';
+      case 'cancelled':
+        return '已取消';
+      default:
+        return status;
     }
   };
 
   if (requests.length === 0) {
     return (
-      <div className="cyber-card p-8 text-center">
-        <p className="text-[#52525b]">[ NO REQUESTS FOUND ]</p>
-        <p className="text-sm text-[#52525b] mt-2">// 发布你的第一个需求开始匹配</p>
+      <div className="card p-8 text-center">
+        <p className="text-slate-400">暂无需求记录</p>
+        <p className="text-sm text-slate-400 mt-1">发布你的第一个需求开始匹配</p>
       </div>
     );
   }
@@ -64,118 +79,111 @@ export default function RequestList({ requests, onViewConversation }: RequestLis
   return (
     <div className="space-y-4">
       {requests.map((request) => (
-        <div key={request.id} className="cyber-card corner-decoration">
-          {/* Request Header */}
-          <div className="p-6 border-b border-[#27272a]">
+        <div key={request.id} className="card overflow-hidden">
+          {/* 需求头部 */}
+          <div className="p-4 border-b border-slate-100">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`px-2 py-0.5 border text-xs uppercase tracking-wider ${getStatusColor(request.status)}`}>
-                    {request.status}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`tag ${getStatusStyle(request.status)}`}>
+                    {getStatusText(request.status)}
                   </span>
                 </div>
-                <p className="text-[#e4e4e7]">{request.content}</p>
+                <p className="text-slate-900">{request.content}</p>
                 {request.summary && (
-                  <p className="text-sm text-[#a1a1aa] mt-2 italic">
-                    // {request.summary}
+                  <p className="text-sm text-slate-500 mt-2">
+                    {request.summary}
                   </p>
                 )}
               </div>
               <button
                 onClick={() => setExpandedId(expandedId === request.id ? null : request.id)}
-                className="text-[#52525b] hover:text-[#00f5ff] transition-colors"
+                className="text-slate-400 hover:text-blue-500 transition-colors p-1"
               >
-                {expandedId === request.id ? '[-]' : '[+]'}
+                <svg className={`w-5 h-5 transition-transform ${expandedId === request.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
             </div>
 
-            {/* Conversation Count */}
+            {/* 对话数量 */}
             {request.conversationCount > 0 && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                <span className="px-2 py-1 text-xs border border-[#8b5cf6]/50 text-[#8b5cf6]">
+              <div className="flex items-center gap-2 mt-3">
+                <span className="tag tag-primary">
                   {request.conversationCount} 个对话
                 </span>
               </div>
             )}
           </div>
 
-          {/* Expanded Details */}
+          {/* 展开详情 */}
           {expandedId === request.id && (
-            <div className="p-6 border-b border-[#27272a] bg-[#0a0a0f]/50">
-              <div className="text-sm">
-                <span className="text-[#52525b]">CREATED: </span>
-                <span className="text-[#e4e4e7] font-mono">
-                  {new Date(request.createdAt).toLocaleString()}
-                </span>
-              </div>
-              <div className="text-sm mt-2">
-                <span className="text-[#52525b]">STATUS: </span>
-                <span className="text-[#e4e4e7] font-mono">{request.status}</span>
+            <div className="p-4 bg-slate-50 border-b border-slate-100">
+              <div className="text-sm text-slate-600">
+                <span>创建时间：</span>
+                <span>{new Date(request.createdAt).toLocaleString()}</span>
               </div>
             </div>
           )}
 
-          {/* Conversations Section */}
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[#ff00ff]">{'<>'}</span>
-                <span className="text-sm text-[#52525b] tracking-wider">
-                  CONVERSATIONS ({request.conversations?.length || 0})
-                </span>
-              </div>
+          {/* 对话列表 */}
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-slate-500">
+                对话 ({request.conversations?.length || 0})
+              </span>
               {onViewConversation && request.conversations?.length > 0 && (
                 <button
                   onClick={() => handleViewConversation(request.id)}
-                  className="px-4 py-2 border border-[#8b5cf6] text-[#8b5cf6] text-sm hover:bg-[#8b5cf6]/10 transition-colors"
+                  className="btn btn-secondary text-sm py-1 px-3"
                 >
-                  VIEW_CONVERSATIONS
+                  查看对话
                 </button>
               )}
             </div>
 
             {request.conversations?.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {request.conversations.slice(0, 3).map((conv) => (
                   <div
                     key={conv.id}
-                    className="p-4 border border-[#27272a] hover:border-[#00f5ff]/50 transition-colors"
+                    className="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                   >
                     <div className="flex items-start gap-3">
-                      {/* User Avatar */}
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#00f5ff]/20 to-[#ff00ff]/20 flex items-center justify-center border border-[#00f5ff]/30">
-                        <span className="text-[#00f5ff] text-sm">
+                      {/* 用户头像 */}
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span className="text-blue-500 text-sm font-medium">
                           {conv.targetUser.name?.[0] || 'A'}
                         </span>
                       </div>
 
-                      {/* Conversation Preview */}
-                      <div className="flex-1">
+                      {/* 对话预览 */}
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[#e4e4e7] font-semibold text-sm">
+                          <span className="font-medium text-slate-900 text-sm">
                             {conv.targetUser.name || 'Agent'}
                           </span>
-                          <span className={`px-2 py-0.5 text-xs ${conv.status === 'ongoing' ? 'bg-[#00f5ff]/10 text-[#00f5ff]' : 'bg-[#22c55e]/10 text-[#22c55e]'}`}>
-                            {conv.status}
+                          <span className={`tag text-xs ${conv.status === 'ongoing' ? 'tag-primary' : 'tag-success'}`}>
+                            {conv.status === 'ongoing' ? '进行中' : '已完成'}
                           </span>
                         </div>
-                        <p className="text-[#a1a1aa] text-sm line-clamp-2">
-                          {conv.messages[conv.messages.length - 1]?.content.slice(0, 100)}...
+                        <p className="text-slate-500 text-sm truncate">
+                          {conv.messages[conv.messages.length - 1]?.content || '暂无消息'}
                         </p>
                       </div>
                     </div>
                   </div>
                 ))}
                 {request.conversations.length > 3 && (
-                  <div className="text-center text-[#52525b] text-sm">
+                  <p className="text-center text-slate-400 text-sm">
                     还有 {request.conversations.length - 3} 个对话...
-                  </div>
+                  </p>
                 )}
               </div>
             ) : (
-              <div className="text-center py-4 text-[#52525b] text-sm">
-                // 广播需求开始对话
-              </div>
+              <p className="text-center py-4 text-slate-400 text-sm">
+                广播需求开始对话
+              </p>
             )}
           </div>
         </div>
