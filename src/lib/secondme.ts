@@ -34,7 +34,8 @@ export interface TokenResponse {
 
 // 用户信息类型
 export interface UserInfo {
-  id: string;
+  id?: string;
+  openId?: string;
   name: string;
   avatar?: string;
   email?: string;

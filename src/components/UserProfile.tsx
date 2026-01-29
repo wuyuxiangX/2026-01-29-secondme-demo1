@@ -76,10 +76,12 @@ export default function UserProfile({ user, shades }: UserProfileProps) {
             )}
 
             <div className="flex items-center gap-4 text-xs text-[#52525b]">
+              {(user.id || user.openId) && (
               <div className="flex items-center gap-2">
                 <span className="text-[#00f5ff]">ID:</span>
-                <span className="font-mono">{user.id.slice(0, 12)}...</span>
+                <span className="font-mono">{(user.id || user.openId)?.slice(0, 12)}...</span>
               </div>
+              )}
               <span className="w-1 h-1 bg-[#52525b] rounded-full" />
               <span>AGENT_STATUS: ACTIVE</span>
             </div>
