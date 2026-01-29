@@ -34,11 +34,13 @@ export interface TokenResponse {
 
 // 用户信息类型
 export interface UserInfo {
-  id?: string;
-  openId?: string;
   name: string;
+  email: string;
   avatar?: string;
-  email?: string;
+  bio?: string;
+  selfIntroduction?: string;
+  voiceId?: string;
+  profileCompleteness?: number;
 }
 
 // 用户兴趣标签类型

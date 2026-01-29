@@ -12,6 +12,7 @@ export interface SessionData {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
+  openId?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ export async function setSession(tokenData: TokenResponse): Promise<void> {
   cookieStore.set(TOKEN_COOKIE_NAME, JSON.stringify({
     accessToken: tokenData.accessToken,
     expiresAt,
+    openId: tokenData.openId,
   }), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -57,11 +59,12 @@ export async function getSession(): Promise<SessionData | null> {
   }
 
   try {
-    const { accessToken, expiresAt } = JSON.parse(tokenCookie.value);
+    const { accessToken, expiresAt, openId } = JSON.parse(tokenCookie.value);
     return {
       accessToken,
       refreshToken: refreshTokenCookie?.value || '',
       expiresAt,
+      openId,
     };
   } catch {
     return null;

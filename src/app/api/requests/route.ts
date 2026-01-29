@@ -41,11 +41,12 @@ export async function POST(request: NextRequest) {
 
     // 获取用户信息
     const userInfo = await getUserInfo(accessToken);
-    const secondmeId = userInfo.id || userInfo.openId;
+    // 使用 email 作为用户唯一标识符
+    const secondmeId = userInfo.email;
 
     if (!secondmeId) {
       return NextResponse.json(
-        { error: 'Unable to get user ID' },
+        { error: 'Unable to get user email' },
         { status: 400 }
       );
     }
@@ -125,8 +126,9 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const accessToken = await getAccessToken();
+    const session = await getSession();
 
-    if (!accessToken) {
+    if (!accessToken || !session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -135,11 +137,12 @@ export async function GET() {
 
     // 获取用户信息
     const userInfo = await getUserInfo(accessToken);
-    const secondmeId = userInfo.id || userInfo.openId;
+    // 使用 email 作为用户唯一标识符
+    const secondmeId = userInfo.email;
 
     if (!secondmeId) {
       return NextResponse.json(
-        { error: 'Unable to get user ID' },
+        { error: 'Unable to get user email' },
         { status: 400 }
       );
     }

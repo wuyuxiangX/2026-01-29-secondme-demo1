@@ -276,3 +276,78 @@ export function simulateAgentNetwork(request: {
 
   return offers;
 }
+
+// Offer 评估结果
+export interface OfferEvaluationResult {
+  accepted: boolean;
+  reasoning: string;
+  confidence: number;
+}
+
+// Agent 评估 Offer 的系统提示词
+const OFFER_EVALUATION_PROMPT = `你是用户的数字分身 Agent。你的主人发布了一个需求，现在有人提供了一个 Offer。你需要代表主人评估这个 Offer 是否值得接受。
+
+评估标准：
+1. Offer 是否能满足需求
+2. 如果有预算限制，Offer 是否在预算范围内
+3. 提供的资源是否有用
+4. 条件是否合理
+
+请以 JSON 格式返回评估结果：
+{
+  "accepted": true/false,
+  "reasoning": "接受或拒绝的理由（简短，一句话）",
+  "confidence": 0.0-1.0
+}
+
+只返回 JSON，不要有其他内容。`;
+
+/**
+ * Agent 评估 Offer
+ * 由需求发布者的 Agent 自动判断是否接受
+ */
+export async function evaluateOffer(
+  accessToken: string,
+  request: {
+    content: string;
+    budget?: number;
+    analysis?: Record<string, unknown>;
+  },
+  offer: {
+    content: string;
+    resource?: {
+      type: string;
+      name: string;
+      terms?: string;
+    };
+  }
+): Promise<OfferEvaluationResult | null> {
+  try {
+    const context = `
+我的需求：
+${request.content}
+${request.budget ? `预算限制：${request.budget}元` : '无预算限制'}
+${request.analysis ? `需求分析：${JSON.stringify(request.analysis)}` : ''}
+
+收到的 Offer：
+${offer.content}
+${offer.resource ? `提供的资源：${offer.resource.type} - ${offer.resource.name}${offer.resource.terms ? `（${offer.resource.terms}）` : ''}` : ''}
+`;
+
+    const result = await chat(accessToken, {
+      message: `请评估这个 Offer 是否应该接受：\n${context}`,
+      systemPrompt: OFFER_EVALUATION_PROMPT,
+    });
+
+    // 解析 JSON
+    const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]) as OfferEvaluationResult;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Failed to evaluate offer:', error);
+    return null;
+  }
+}

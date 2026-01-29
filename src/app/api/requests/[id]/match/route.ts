@@ -22,11 +22,12 @@ export async function POST(
 
     // 获取用户信息
     const userInfo = await getUserInfo(accessToken);
-    const secondmeId = userInfo.id || userInfo.openId;
+    // 使用 email 作为用户唯一标识符
+    const secondmeId = userInfo.email;
 
     if (!secondmeId) {
       return NextResponse.json(
-        { error: 'Unable to get user ID' },
+        { error: 'Unable to get user email' },
         { status: 400 }
       );
     }

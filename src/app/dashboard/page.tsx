@@ -53,6 +53,14 @@ export default async function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-6">
+            {/* Marketplace Link */}
+            <a
+              href="/marketplace"
+              className="px-4 py-2 border border-[#ff00ff] text-[#ff00ff] text-xs tracking-wider uppercase hover:bg-[#ff00ff]/10 transition-colors"
+            >
+              MARKETPLACE
+            </a>
+
             {/* Status */}
             <div className="flex items-center gap-2 text-xs text-[#52525b]">
               <span className="w-2 h-2 bg-[#00f5ff] rounded-full pulse-glow" />
