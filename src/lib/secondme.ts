@@ -226,3 +226,163 @@ export async function createNote(
 
   return result.data;
 }
+
+// 聊天相关类型
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  senderId?: string;
+  createdAt: string;
+}
+
+export interface ChatSession {
+  id: string;
+  lastMessage?: string;
+  updatedAt: string;
+  messageCount: number;
+}
+
+export interface ChatStreamOptions {
+  message: string;
+  sessionId?: string;
+  systemPrompt?: string;
+  appId?: string;
+}
+
+/**
+ * 流式聊天 - 返回 ReadableStream
+ * 客户端可以使用此流进行实时显示
+ */
+export async function chatStream(
+  accessToken: string,
+  options: ChatStreamOptions
+): Promise<Response> {
+  const response = await fetch(`${SECONDME_BASE_URL}/api/secondme/chat/stream`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    },
+    body: JSON.stringify(options),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Chat stream failed: ${response.status}`);
+  }
+
+  return response;
+}
+
+/**
+ * 非流式聊天 - 等待完整响应
+ * 用于后端分析场景
+ */
+export async function chat(
+  accessToken: string,
+  options: ChatStreamOptions
+): Promise<{ sessionId: string; content: string }> {
+  const response = await chatStream(accessToken, options);
+  const reader = response.body?.getReader();
+
+  if (!reader) {
+    throw new Error('No response body');
+  }
+
+  const decoder = new TextDecoder();
+  let content = '';
+  let sessionId = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split('\n');
+
+    for (const line of lines) {
+      if (line.startsWith('event: session')) {
+        // 下一行是 session data
+        continue;
+      }
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6);
+        if (data === '[DONE]') {
+          break;
+        }
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.sessionId) {
+            sessionId = parsed.sessionId;
+          }
+          if (parsed.content) {
+            content += parsed.content;
+          }
+          if (parsed.delta) {
+            content += parsed.delta;
+          }
+        } catch {
+          // 可能是纯文本增量
+          if (data && data !== '[DONE]') {
+            content += data;
+          }
+        }
+      }
+    }
+  }
+
+  return { sessionId, content };
+}
+
+/**
+ * 获取会话列表
+ */
+export async function getChatSessions(
+  accessToken: string,
+  appId?: string
+): Promise<ChatSession[]> {
+  const params = new URLSearchParams();
+  if (appId) params.set('appId', appId);
+
+  const url = `${SECONDME_BASE_URL}/api/secondme/chat/session/list${params.toString() ? `?${params}` : ''}`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const result: ApiResponse<ChatSession[]> = await response.json();
+
+  if (result.code !== 0) {
+    throw new Error(result.message || 'Failed to get chat sessions');
+  }
+
+  return result.data;
+}
+
+/**
+ * 获取会话消息历史
+ */
+export async function getChatMessages(
+  accessToken: string,
+  sessionId: string
+): Promise<ChatMessage[]> {
+  const response = await fetch(
+    `${SECONDME_BASE_URL}/api/secondme/chat/session/messages?sessionId=${sessionId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const result: ApiResponse<ChatMessage[]> = await response.json();
+
+  if (result.code !== 0) {
+    throw new Error(result.message || 'Failed to get chat messages');
+  }
+
+  return result.data;
+}

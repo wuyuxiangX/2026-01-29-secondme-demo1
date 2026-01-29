@@ -3,6 +3,7 @@ import { getUserInfo, getUserShades, refreshAccessToken } from '@/lib/secondme';
 import { setSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import UserProfile from '@/components/UserProfile';
+import DashboardClient from '@/components/DashboardClient';
 
 export default async function DashboardPage() {
   let accessToken = await getAccessToken();
@@ -73,33 +74,9 @@ export default async function DashboardPage() {
       <main className="max-w-6xl mx-auto px-6 py-10">
         <UserProfile user={userInfo} shades={userShades} />
 
-        {/* Coming Soon Section */}
-        <div className="mt-10 cyber-card corner-decoration p-10 text-center">
-          <div className="text-4xl mb-6 opacity-50">{'{ }'}</div>
-          <h3
-            className="text-xl font-semibold mb-3 tracking-wide"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            <span className="text-[#a1a1aa]">AGENT NETWORK</span>{' '}
-            <span className="text-[#00f5ff] neon-text">INITIALIZING</span>
-          </h3>
-          <p className="text-[#52525b] max-w-md mx-auto">
-            需求发布、资源匹配、Agent 协同等功能模块正在部署中...
-          </p>
-
-          {/* Progress bar */}
-          <div className="mt-8 max-w-xs mx-auto">
-            <div className="flex items-center justify-between text-xs text-[#52525b] mb-2">
-              <span>DEPLOYMENT PROGRESS</span>
-              <span>42%</span>
-            </div>
-            <div className="h-1 bg-[#1a1a24] rounded-full overflow-hidden">
-              <div
-                className="h-full gradient-animate rounded-full"
-                style={{ width: '42%' }}
-              />
-            </div>
-          </div>
+        {/* Agent Network Section */}
+        <div className="mt-10">
+          <DashboardClient />
         </div>
       </main>
 
