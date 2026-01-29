@@ -1,11 +1,11 @@
 /**
- * 广播任务 API
- * POST /api/network/broadcast - 发布任务并和网络中的用户对话
+ * 广播任务 API（SSE 流式版本）
+ * POST /api/network/broadcast - 发布任务并和网络中的用户对话，实时推送消息
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { broadcastRequest } from '@/lib/agents';
+import { broadcastRequestWithStream, SSEEvent } from '@/lib/agents';
 import { getAccessToken, getSession, getRefreshToken, setSession } from '@/lib/session';
 import { getUserInfo, refreshAccessToken } from '@/lib/secondme';
 
@@ -25,15 +25,24 @@ export async function POST(request: NextRequest) {
           session = await getSession();
         } catch (error) {
           console.error('[API] Token refresh failed:', error);
-          return NextResponse.json({ error: '登录已过期，请重新登录' }, { status: 401 });
+          return new Response(JSON.stringify({ error: '登录已过期，请重新登录' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          });
         }
       } else {
-        return NextResponse.json({ error: '请先登录' }, { status: 401 });
+        return new Response(JSON.stringify({ error: '请先登录' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
     }
 
     if (!session) {
-      return NextResponse.json({ error: '请先登录' }, { status: 401 });
+      return new Response(JSON.stringify({ error: '请先登录' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // 获取用户信息
@@ -41,14 +50,20 @@ export async function POST(request: NextRequest) {
     const secondmeId = userInfo.email;
 
     if (!secondmeId) {
-      return NextResponse.json({ error: '无法获取用户信息' }, { status: 401 });
+      return new Response(JSON.stringify({ error: '无法获取用户信息' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const body = await request.json();
     const { content } = body;
 
     if (!content) {
-      return NextResponse.json({ error: '需求内容不能为空' }, { status: 400 });
+      return new Response(JSON.stringify({ error: '需求内容不能为空' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // 查找或创建用户
@@ -69,7 +84,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 创建需求记录（使用 User.id）
+    // 创建需求记录
     const requestRecord = await prisma.request.create({
       data: {
         userId: user.id,
@@ -78,33 +93,46 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`[API] Broadcasting request ${requestRecord.id} from user ${user.id}`);
+    console.log(`[API] Broadcasting request ${requestRecord.id} from user ${user.id} (SSE)`);
 
-    // 广播给网络中的用户（传入 user.id 用于排除自己）
-    const results = await broadcastRequest(requestRecord.id, content, user.id);
+    // 创建 SSE 流
+    const encoder = new TextEncoder();
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
 
-    const successCount = results.filter((r) => r.status === 'success').length;
-    const failedCount = results.filter((r) => r.status === 'failed').length;
+    // SSE 写入器
+    const sseWriter = {
+      write: async (event: SSEEvent) => {
+        const data = `event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`;
+        await writer.write(encoder.encode(data));
+      },
+      close: () => {
+        writer.close();
+      },
+    };
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        requestId: requestRecord.id,
-        totalUsers: results.length,
-        successCount,
-        failedCount,
-        conversations: results.filter((r) => r.status === 'success').map((r) => ({
-          conversationId: r.conversationId,
-          userName: r.targetUserName,
-          firstReply: r.firstReply,
-        })),
+    // 在后台执行广播（不阻塞响应）
+    broadcastRequestWithStream(requestRecord.id, content, user.id, sseWriter).catch((error) => {
+      console.error('[API] Broadcast stream failed:', error);
+      sseWriter.write({
+        event: 'error',
+        data: { error: String(error) },
+      }).finally(() => sseWriter.close());
+    });
+
+    // 返回 SSE 响应
+    return new Response(stream.readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       },
     });
   } catch (error) {
     console.error('[API] Broadcast failed:', error);
-    return NextResponse.json(
-      { error: '广播失败', details: String(error) },
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ error: '广播失败', details: String(error) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }

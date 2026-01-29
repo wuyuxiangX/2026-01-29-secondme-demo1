@@ -26,6 +26,23 @@ interface Request {
   createdAt: string;
 }
 
+// SSE 事件数据类型
+interface SSEMessage {
+  role: 'requester' | 'agent';
+  content: string;
+  timestamp: string;
+}
+
+interface RealtimeConversation {
+  id: string;
+  targetUserId: string;
+  targetUserName: string;
+  targetUserAvatar?: string;
+  messages: SSEMessage[];
+  status: 'ongoing' | 'concluded' | 'max_rounds' | 'error';
+  conclusionReason?: string;
+}
+
 type Phase = 'idle' | 'broadcasting' | 'chatting' | 'completed';
 
 export default function DashboardClient() {
@@ -39,11 +56,16 @@ export default function DashboardClient() {
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
 
-  const logsEndRef = useRef<HTMLDivElement>(null);
+  // 实时对话状态（SSE 流式更新）
+  const [realtimeConversations, setRealtimeConversations] = useState<RealtimeConversation[]>([]);
 
-  // 自动滚动日志
+  const logsContainerRef = useRef<HTMLDivElement>(null);
+
+  // 自动滚动日志（只在容器内滚动，不影响页面）
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (logsContainerRef.current) {
+      logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
+    }
   }, [logs]);
 
   const addLog = (message: string) => {
@@ -75,9 +97,10 @@ export default function DashboardClient() {
     setPhase('idle');
     setCurrentRequestId(null);
     setLogs([]);
+    setRealtimeConversations([]);
   };
 
-  // 提交新需求并广播到网络
+  // 提交新需求并广播到网络（SSE 流式版本）
   const handleSubmit = async (formData: RequestFormData) => {
     setIsSubmitting(true);
     setError(null);
@@ -88,39 +111,158 @@ export default function DashboardClient() {
       setPhase('broadcasting');
       setLogs([]);
       addLog('正在广播您的需求到网络...');
-      addLog('正在寻找网络中的用户...');
+      addLog('AI 分身开始自动对话...');
 
-      const broadcastRes = await fetch('/api/network/broadcast', {
+      const response = await fetch('/api/network/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      if (!broadcastRes.ok) {
-        const errorData = await broadcastRes.json();
+      if (!response.ok) {
+        const errorData = await response.json();
         throw new Error(errorData.error || '广播失败');
       }
 
-      const broadcastData = await broadcastRes.json();
-
-      addLog(`广播完成！找到 ${broadcastData.data.totalUsers} 个用户`);
-      addLog(`成功对话: ${broadcastData.data.successCount} 个`);
-
-      if (broadcastData.data.conversations) {
-        for (const conv of broadcastData.data.conversations) {
-          addLog(`${conv.userName}: ${conv.firstReply.slice(0, 50)}...`);
+      // 检查是否是 SSE 响应
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('text/event-stream')) {
+        // 处理 SSE 流
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('无法读取响应流');
         }
-      }
 
-      setCurrentRequestId(broadcastData.data.requestId);
-      setPhase('chatting');
-      await fetchRequests();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+
+          // 保留最后一行（可能不完整）
+          buffer = lines.pop() || '';
+
+          let currentEvent = '';
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              currentEvent = line.slice(7).trim();
+            } else if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              try {
+                const parsed = JSON.parse(data);
+                handleSSEEvent(currentEvent, parsed);
+              } catch {
+                // 忽略解析错误
+              }
+            }
+          }
+        }
+
+        setPhase('completed');
+        await fetchRequests();
+      } else {
+        // 降级到普通 JSON 响应
+        const broadcastData = await response.json();
+        addLog(`广播完成！找到 ${broadcastData.data.totalUsers} 个用户`);
+        setCurrentRequestId(broadcastData.data.requestId);
+        setPhase('chatting');
+        await fetchRequests();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       addLog(`错误: ${err}`);
       setPhase('idle');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // 处理 SSE 事件
+  const handleSSEEvent = (event: string, data: unknown) => {
+    switch (event) {
+      case 'conversation_start': {
+        const { conversationId, targetUserName, targetUserAvatar } = data as {
+          conversationId: string;
+          targetUserId: string;
+          targetUserName: string;
+          targetUserAvatar?: string;
+        };
+        addLog(`开始与 ${targetUserName} 对话...`);
+        setRealtimeConversations((prev) => [
+          ...prev,
+          {
+            id: conversationId,
+            targetUserId: (data as { targetUserId: string }).targetUserId,
+            targetUserName,
+            targetUserAvatar,
+            messages: [],
+            status: 'ongoing',
+          },
+        ]);
+        // 切换到对话视图
+        setPhase('chatting');
+        break;
+      }
+
+      case 'message': {
+        const { conversationId, message } = data as {
+          conversationId: string;
+          message: SSEMessage;
+        };
+        setRealtimeConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === conversationId
+              ? { ...conv, messages: [...conv.messages, message] }
+              : conv
+          )
+        );
+        const roleText = message.role === 'requester' ? '需求方' : '资源方';
+        addLog(`${roleText}: ${message.content.slice(0, 30)}...`);
+        break;
+      }
+
+      case 'conversation_end': {
+        const { conversationId, status, conclusionReason, realConversationId } = data as {
+          conversationId: string;
+          realConversationId?: string;
+          status: string;
+          conclusionReason?: string;
+        };
+        setRealtimeConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === conversationId
+              ? {
+                  ...conv,
+                  id: realConversationId || conv.id,
+                  status: status as 'concluded' | 'max_rounds',
+                  conclusionReason,
+                }
+              : conv
+          )
+        );
+        addLog(`对话结束: ${conclusionReason || status}`);
+        break;
+      }
+
+      case 'done': {
+        const { requestId, totalConversations } = data as {
+          requestId: string;
+          totalConversations: number;
+        };
+        setCurrentRequestId(requestId);
+        addLog(`全部对话完成！共 ${totalConversations} 个对话`);
+        break;
+      }
+
+      case 'error': {
+        const { error } = data as { error: string; conversationId?: string };
+        addLog(`错误: ${error}`);
+        break;
+      }
     }
   };
 
@@ -186,22 +328,31 @@ export default function DashboardClient() {
               </div>
 
               {/* 日志窗口 */}
-              <div className="bg-slate-50 rounded-lg p-4 h-48 overflow-y-auto text-sm border border-slate-100">
+              <div ref={logsContainerRef} className="bg-slate-50 rounded-lg p-4 h-48 overflow-y-auto text-sm border border-slate-100">
                 {logs.map((log, i) => (
                   <div key={i} className="text-slate-600 mb-1">{log}</div>
                 ))}
-                <div ref={logsEndRef} />
                 <div className="text-blue-500 pulse">...</div>
               </div>
             </div>
           )}
 
-          {/* 对话展示 */}
-          {(phase === 'chatting' || phase === 'completed') && currentRequestId && (
+          {/* 实时对话展示 */}
+          {(phase === 'chatting' || phase === 'completed') && realtimeConversations.length > 0 && (
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                {realtimeConversations.map((conv) => (
+                  <RealtimeConversationCard key={conv.id} conversation={conv} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 已完成的对话展示（从数据库加载） */}
+          {phase === 'completed' && currentRequestId && realtimeConversations.length === 0 && (
             <NetworkConversation
               requestId={currentRequestId}
               onComplete={() => {
-                setPhase('completed');
                 fetchRequests();
               }}
             />
@@ -249,6 +400,116 @@ export default function DashboardClient() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+// 实时对话卡片组件
+function RealtimeConversationCard({ conversation }: { conversation: RealtimeConversation }) {
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // 自动滚动消息（只在容器内滚动，不影响页面）
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [conversation.messages]);
+
+  const statusText = {
+    ongoing: '对话中...',
+    concluded: '已达成结论',
+    max_rounds: '已达最大轮数',
+    error: '对话出错',
+  };
+
+  const statusColor = {
+    ongoing: 'text-blue-500',
+    concluded: 'text-green-500',
+    max_rounds: 'text-orange-500',
+    error: 'text-red-500',
+  };
+
+  return (
+    <div className="card overflow-hidden flex flex-col h-[400px]">
+      {/* 头部 */}
+      <div className="flex items-center justify-between p-3 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          {conversation.targetUserAvatar ? (
+            <img
+              src={conversation.targetUserAvatar}
+              alt={conversation.targetUserName}
+              className="w-8 h-8 rounded-full"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <span className="text-sm text-blue-500 font-medium">
+                {conversation.targetUserName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
+          <span className="text-sm font-medium text-slate-900">
+            {conversation.targetUserName}
+          </span>
+        </div>
+        <span className={`text-xs ${statusColor[conversation.status]}`}>
+          {statusText[conversation.status]}
+        </span>
+      </div>
+
+      {/* 消息区域 */}
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin bg-slate-50">
+        {conversation.messages.map((msg, index) => (
+          <div
+            key={index}
+            className={`flex ${msg.role === 'requester' ? 'justify-start' : 'justify-end'}`}
+          >
+            <div
+              className={`rounded-2xl px-4 py-2 max-w-[85%] ${
+                msg.role === 'requester'
+                  ? 'bg-white border border-slate-200 rounded-bl-sm'
+                  : 'bg-blue-500 text-white rounded-br-sm'
+              }`}
+            >
+              <div
+                className={`text-xs mb-1 ${
+                  msg.role === 'requester' ? 'text-slate-400' : 'text-blue-100'
+                }`}
+              >
+                {msg.role === 'requester' ? '需求方 AI' : conversation.targetUserName}
+              </div>
+              <div
+                className={`text-sm whitespace-pre-wrap break-words ${
+                  msg.role === 'requester' ? 'text-slate-700' : 'text-white'
+                }`}
+              >
+                {msg.content}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* 加载指示器 */}
+        {conversation.status === 'ongoing' && (
+          <div className="flex justify-end">
+            <div className="bg-blue-500 rounded-2xl px-4 py-2 rounded-br-sm">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-blue-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 bg-blue-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 bg-blue-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 底部状态 */}
+      {conversation.status !== 'ongoing' && (
+        <div className="p-3 border-t border-slate-100">
+          <div className={`text-center text-xs ${statusColor[conversation.status]}`}>
+            {conversation.conclusionReason || statusText[conversation.status]}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

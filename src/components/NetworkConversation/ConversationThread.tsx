@@ -11,10 +11,13 @@ export function ConversationThread({
 }: ConversationThreadProps) {
   const [message, setMessage] = useState('');
   const [isLocalSending, setIsLocalSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  // 自动滚动消息（只在容器内滚动，不影响页面）
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -75,7 +78,7 @@ export function ConversationThread({
       </div>
 
       {/* 消息区域 */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin bg-slate-50">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin bg-slate-50">
         {conversation.messages.map((msg, index) => (
           <MessageBubble key={index} message={msg} userName={conversation.targetUserName} />
         ))}
@@ -90,7 +93,6 @@ export function ConversationThread({
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* 输入区域 */}
