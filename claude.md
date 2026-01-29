@@ -27,19 +27,51 @@
 
 ## SecondMe API
 
-Base URL: `https://app.mindos.com/gate/lab`
+**官方文档**: https://develop-docs.second.me/zh/docs/api-reference/secondme
+
+**Base URL**: `https://app.mindos.com/gate/lab`
+
+**认证方式**: 所有端点需要 OAuth2 Token 或 API Key，通过 `Authorization` header 传递
 
 ### OAuth2 端点
-- `POST /api/oauth/authorize/external` - 发起授权
-- `POST /api/oauth/token/code` - 授权码换 token
-- `POST /api/oauth/token/refresh` - 刷新 token
 
-### SecondMe 端点
-- `GET /api/secondme/user/info` - 用户基本信息
-- `GET /api/secondme/user/shades` - 用户兴趣标签
-- `GET /api/secondme/user/softmemory` - 用户软记忆（知识库）
-- `POST /api/secondme/chat/stream` - 流式聊天
-- `POST /api/secondme/note/add` - 创建笔记
+| 方法 | 端点 | 描述 |
+|------|------|------|
+| POST | `/api/oauth/authorize/external` | 发起授权请求 |
+| POST | `/api/oauth/token/code` | 授权码换取 access_token |
+| POST | `/api/oauth/token/refresh` | 刷新 access_token |
+
+### 用户信息端点
+
+| 方法 | 端点 | Scope | 描述 |
+|------|------|-------|------|
+| GET | `/api/secondme/user/info` | `user.info` | 获取授权用户的基本信息 |
+| GET | `/api/secondme/user/shades` | `user.info` | 获取用户的兴趣标签 |
+| GET | `/api/secondme/user/softmemory` | `user.info` | 获取用户的软记忆数据（个人知识库） |
+
+### 笔记与记忆端点
+
+| 方法 | 端点 | Scope | 描述 |
+|------|------|-------|------|
+| POST | `/api/secondme/note/add` | `note.add` | 创建一条笔记或记忆（文本或链接） |
+
+### 聊天与对话端点
+
+| 方法 | 端点 | Scope | 描述 |
+|------|------|-------|------|
+| POST | `/api/secondme/chat/stream` | `chat` | 以用户的 AI 分身进行流式对话 |
+| GET | `/api/secondme/chat/session/list` | `chat` | 获取用户的聊天会话列表 |
+| GET | `/api/secondme/chat/session/messages` | `chat` | 获取指定会话的消息历史 |
+
+### 响应格式
+
+所有 API 返回标准化 JSON 响应：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": { ... }
+}
 
 ---
 

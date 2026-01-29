@@ -52,6 +52,7 @@ export default function MarketplacePage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [offeringId, setOfferingId] = useState<string | null>(null);
   const [submittingOffer, setSubmittingOffer] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -59,6 +60,9 @@ export default function MarketplacePage() {
       const data = await response.json();
       if (data.requests) {
         setRequests(data.requests);
+      }
+      if (data.currentUserId) {
+        setCurrentUserId(data.currentUserId);
       }
     } catch (err) {
       console.error('Failed to fetch marketplace:', err);
@@ -270,12 +274,18 @@ export default function MarketplacePage() {
                     >
                       {expandedId === request.id ? 'HIDE_OFFERS' : 'VIEW_OFFERS'}
                     </button>
-                    <button
-                      onClick={() => setOfferingId(offeringId === request.id ? null : request.id)}
-                      className="px-4 py-2 border border-[#ff00ff] text-[#ff00ff] text-xs hover:bg-[#ff00ff]/10 transition-colors"
-                    >
-                      {offeringId === request.id ? 'CANCEL' : 'MAKE_OFFER'}
-                    </button>
+                    {request.user.id === currentUserId ? (
+                      <span className="px-4 py-2 border border-[#52525b] text-[#52525b] text-xs cursor-not-allowed">
+                        YOUR_REQUEST
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setOfferingId(offeringId === request.id ? null : request.id)}
+                        className="px-4 py-2 border border-[#ff00ff] text-[#ff00ff] text-xs hover:bg-[#ff00ff]/10 transition-colors"
+                      >
+                        {offeringId === request.id ? 'CANCEL' : 'MAKE_OFFER'}
+                      </button>
+                    )}
                   </div>
                 </div>
 
