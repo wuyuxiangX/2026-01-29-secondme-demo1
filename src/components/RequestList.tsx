@@ -2,35 +2,26 @@
 
 import { useState } from 'react';
 
-interface Offer {
+interface Conversation {
   id: string;
-  content: string;
-  reasoning?: string;
-  resource?: {
-    type: string;
-    name: string;
-    terms?: string;
-  };
-  status: string;
-  user: {
+  targetUser: {
     id: string;
     name?: string;
     avatar?: string;
   };
+  messages: Array<{ role: string; content: string; timestamp: string }>;
+  summary?: string;
+  status: string;
   createdAt: string;
 }
 
 interface Request {
   id: string;
   content: string;
-  analysis?: {
-    summary?: string;
-    category?: string;
-    requirements?: string[];
-    suggestedTags?: string[];
-  };
+  summary?: string;
   status: string;
-  offers: Offer[];
+  conversations: Conversation[];
+  conversationCount: number;
   createdAt: string;
 }
 
@@ -84,9 +75,9 @@ export default function RequestList({ requests, onViewConversation }: RequestLis
                   </span>
                 </div>
                 <p className="text-[#e4e4e7]">{request.content}</p>
-                {request.analysis?.summary && (
+                {request.summary && (
                   <p className="text-sm text-[#a1a1aa] mt-2 italic">
-                    // {request.analysis.summary}
+                    // {request.summary}
                   </p>
                 )}
               </div>
@@ -98,17 +89,12 @@ export default function RequestList({ requests, onViewConversation }: RequestLis
               </button>
             </div>
 
-            {/* Tags */}
-            {request.analysis?.suggestedTags && (
+            {/* Conversation Count */}
+            {request.conversationCount > 0 && (
               <div className="flex flex-wrap gap-2 mt-4">
-                {request.analysis.suggestedTags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 text-xs border border-[#8b5cf6]/50 text-[#8b5cf6]"
-                  >
-                    #{tag}
-                  </span>
-                ))}
+                <span className="px-2 py-1 text-xs border border-[#8b5cf6]/50 text-[#8b5cf6]">
+                  {request.conversationCount} 个对话
+                </span>
               </div>
             )}
           </div>
@@ -122,31 +108,23 @@ export default function RequestList({ requests, onViewConversation }: RequestLis
                   {new Date(request.createdAt).toLocaleString()}
                 </span>
               </div>
-              {request.analysis?.requirements && (
-                <div className="mt-4">
-                  <span className="text-[#52525b] text-xs tracking-wider">REQUIREMENTS:</span>
-                  <ul className="mt-2 space-y-1">
-                    {request.analysis.requirements.map((req, index) => (
-                      <li key={index} className="text-sm text-[#a1a1aa]">
-                        {'>'} {req}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <div className="text-sm mt-2">
+                <span className="text-[#52525b]">STATUS: </span>
+                <span className="text-[#e4e4e7] font-mono">{request.status}</span>
+              </div>
             </div>
           )}
 
-          {/* Offers Section */}
+          {/* Conversations Section */}
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-[#ff00ff]">{'<>'}</span>
                 <span className="text-sm text-[#52525b] tracking-wider">
-                  OFFERS ({request.offers.length})
+                  CONVERSATIONS ({request.conversations?.length || 0})
                 </span>
               </div>
-              {onViewConversation && (
+              {onViewConversation && request.conversations?.length > 0 && (
                 <button
                   onClick={() => handleViewConversation(request.id)}
                   className="px-4 py-2 border border-[#8b5cf6] text-[#8b5cf6] text-sm hover:bg-[#8b5cf6]/10 transition-colors"
@@ -156,52 +134,47 @@ export default function RequestList({ requests, onViewConversation }: RequestLis
               )}
             </div>
 
-            {request.offers.length > 0 ? (
+            {request.conversations?.length > 0 ? (
               <div className="space-y-3">
-                {request.offers.map((offer) => (
+                {request.conversations.slice(0, 3).map((conv) => (
                   <div
-                    key={offer.id}
+                    key={conv.id}
                     className="p-4 border border-[#27272a] hover:border-[#00f5ff]/50 transition-colors"
                   >
                     <div className="flex items-start gap-3">
                       {/* User Avatar */}
                       <div className="w-10 h-10 bg-gradient-to-br from-[#00f5ff]/20 to-[#ff00ff]/20 flex items-center justify-center border border-[#00f5ff]/30">
                         <span className="text-[#00f5ff] text-sm">
-                          {offer.user.name?.[0] || 'A'}
+                          {conv.targetUser.name?.[0] || 'A'}
                         </span>
                       </div>
 
-                      {/* Offer Content */}
+                      {/* Conversation Preview */}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[#e4e4e7] font-semibold text-sm">
-                            {offer.user.name || 'Agent'}
+                            {conv.targetUser.name || 'Agent'}
                           </span>
-                          {offer.resource && (
-                            <span className="px-2 py-0.5 bg-[#00f5ff]/10 text-[#00f5ff] text-xs">
-                              {offer.resource.type}
-                            </span>
-                          )}
+                          <span className={`px-2 py-0.5 text-xs ${conv.status === 'ongoing' ? 'bg-[#00f5ff]/10 text-[#00f5ff]' : 'bg-[#22c55e]/10 text-[#22c55e]'}`}>
+                            {conv.status}
+                          </span>
                         </div>
-                        <p className="text-[#e4e4e7]">{offer.content}</p>
-                        {offer.reasoning && (
-                          <p className="text-xs text-[#52525b] mt-1 italic">
-                            // {offer.reasoning}
-                          </p>
-                        )}
+                        <p className="text-[#a1a1aa] text-sm line-clamp-2">
+                          {conv.messages[conv.messages.length - 1]?.content.slice(0, 100)}...
+                        </p>
                       </div>
-
-                      {/* Accept Button */}
-                      <button className="px-3 py-1 border border-[#22c55e] text-[#22c55e] text-xs hover:bg-[#22c55e]/10 transition-colors">
-                        ACCEPT
-                      </button>
                     </div>
                   </div>
                 ))}
+                {request.conversations.length > 3 && (
+                  <div className="text-center text-[#52525b] text-sm">
+                    还有 {request.conversations.length - 3} 个对话...
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-4 text-[#52525b] text-sm">
-                // 点击 SCAN_NETWORK 开始匹配
+                // 广播需求开始对话
               </div>
             )}
           </div>

@@ -8,30 +8,21 @@ import NetworkConversation from './NetworkConversation';
 interface Request {
   id: string;
   content: string;
-  analysis?: {
-    summary?: string;
-    category?: string;
-    requirements?: string[];
-    suggestedTags?: string[];
-  };
+  summary?: string;
   status: string;
-  offers: Array<{
+  conversations: Array<{
     id: string;
-    content: string;
-    reasoning?: string;
-    resource?: {
-      type: string;
-      name: string;
-      terms?: string;
-    };
-    status: string;
-    user: {
+    targetUser: {
       id: string;
       name?: string;
       avatar?: string;
     };
+    messages: Array<{ role: string; content: string; timestamp: string }>;
+    summary?: string;
+    status: string;
     createdAt: string;
   }>;
+  conversationCount: number;
   createdAt: string;
 }
 
@@ -332,8 +323,8 @@ export default function DashboardClient() {
             </div>
             <div>
               <span className="text-[#ff00ff]">
-                {requests.reduce((acc, r) => acc + r.offers.length, 0)}
-              </span> OFFERS
+                {requests.reduce((acc, r) => acc + (r.conversationCount || 0), 0)}
+              </span> CONVERSATIONS
             </div>
             <div>
               <span className="text-[#8b5cf6]">6</span> AGENTS ONLINE

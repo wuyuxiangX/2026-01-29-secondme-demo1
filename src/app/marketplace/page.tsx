@@ -1,24 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import OfferForm, { OfferFormData } from '@/components/OfferForm';
 
-interface Offer {
+interface Conversation {
   id: string;
-  content: string;
-  reasoning?: string;
-  resource?: {
-    type: string;
-    name: string;
-    terms?: string;
-  };
-  status: string;
-  user: {
+  targetUser: {
     id: string;
     name?: string;
     avatar?: string;
   };
+  messages: Array<{ role: string; content: string; timestamp: string }>;
+  summary?: string;
+  status: string;
   createdAt: string;
 }
 
@@ -27,31 +20,23 @@ interface Request {
   content: string;
   budget?: number;
   deadline?: string;
-  analysis?: {
-    summary?: string;
-    category?: string;
-    requirements?: string[];
-    suggestedTags?: string[];
-  };
+  summary?: string;
   status: string;
   user: {
     id: string;
     name?: string;
     avatar?: string;
   };
-  offers: Offer[];
-  offerCount: number;
-  acceptedCount: number;
+  conversations: Conversation[];
+  conversationCount: number;
+  completedCount: number;
   createdAt: string;
 }
 
 export default function MarketplacePage() {
-  const router = useRouter();
   const [requests, setRequests] = useState<Request[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [offeringId, setOfferingId] = useState<string | null>(null);
-  const [submittingOffer, setSubmittingOffer] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchRequests = useCallback(async () => {
@@ -74,35 +59,6 @@ export default function MarketplacePage() {
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
-
-  const handleSubmitOffer = async (formData: OfferFormData) => {
-    setSubmittingOffer(true);
-    try {
-      const response = await fetch('/api/offers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push('/');
-          return;
-        }
-        throw new Error(data.error || 'Failed to create offer');
-      }
-
-      // 刷新列表并关闭表单
-      await fetchRequests();
-      setOfferingId(null);
-    } catch (err) {
-      throw err;
-    } finally {
-      setSubmittingOffer(false);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -231,36 +187,36 @@ export default function MarketplacePage() {
 
                       <p className="text-[#e4e4e7] text-lg">{request.content}</p>
 
-                      {request.analysis?.summary && (
+                      {request.summary && (
                         <p className="text-sm text-[#a1a1aa] mt-2 italic">
-                          // {request.analysis.summary}
+                          // {request.summary}
                         </p>
                       )}
 
-                      {/* Tags & Budget */}
+                      {/* Budget */}
                       <div className="flex items-center gap-4 mt-4">
                         {request.budget && (
                           <span className="px-3 py-1 bg-[#00f5ff]/10 text-[#00f5ff] text-sm font-mono">
-                            ${request.budget}
+                            ¥{request.budget}
                           </span>
                         )}
-                        {request.analysis?.suggestedTags?.slice(0, 3).map((tag, idx) => (
-                          <span key={idx} className="px-2 py-1 border border-[#8b5cf6]/50 text-[#8b5cf6] text-xs">
-                            #{tag}
+                        {request.conversationCount > 0 && (
+                          <span className="px-2 py-1 border border-[#8b5cf6]/50 text-[#8b5cf6] text-xs">
+                            {request.conversationCount} 个对话
                           </span>
-                        ))}
+                        )}
                       </div>
                     </div>
 
                     {/* Stats & Actions */}
                     <div className="text-right">
                       <div className="text-3xl font-bold text-[#e4e4e7]" style={{ fontFamily: 'var(--font-display)' }}>
-                        {request.offerCount}
+                        {request.conversationCount}
                       </div>
-                      <div className="text-xs text-[#52525b]">OFFERS</div>
-                      {request.acceptedCount > 0 && (
+                      <div className="text-xs text-[#52525b]">CONVERSATIONS</div>
+                      {request.completedCount > 0 && (
                         <div className="text-xs text-[#22c55e] mt-1">
-                          {request.acceptedCount} ACCEPTED
+                          {request.completedCount} COMPLETED
                         </div>
                       )}
                     </div>
@@ -268,59 +224,40 @@ export default function MarketplacePage() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-3 mt-4">
-                    <button
-                      onClick={() => setExpandedId(expandedId === request.id ? null : request.id)}
-                      className="px-4 py-2 border border-[#52525b] text-[#a1a1aa] text-xs hover:border-[#00f5ff] hover:text-[#00f5ff] transition-colors"
-                    >
-                      {expandedId === request.id ? 'HIDE_OFFERS' : 'VIEW_OFFERS'}
-                    </button>
-                    {request.user.id === currentUserId ? (
-                      <span className="px-4 py-2 border border-[#52525b] text-[#52525b] text-xs cursor-not-allowed">
+                    {request.conversationCount > 0 && (
+                      <button
+                        onClick={() => setExpandedId(expandedId === request.id ? null : request.id)}
+                        className="px-4 py-2 border border-[#52525b] text-[#a1a1aa] text-xs hover:border-[#00f5ff] hover:text-[#00f5ff] transition-colors"
+                      >
+                        {expandedId === request.id ? 'HIDE_CONVERSATIONS' : 'VIEW_CONVERSATIONS'}
+                      </button>
+                    )}
+                    {request.user.id === currentUserId && (
+                      <span className="px-4 py-2 border border-[#00f5ff] text-[#00f5ff] text-xs">
                         YOUR_REQUEST
                       </span>
-                    ) : (
-                      <button
-                        onClick={() => setOfferingId(offeringId === request.id ? null : request.id)}
-                        className="px-4 py-2 border border-[#ff00ff] text-[#ff00ff] text-xs hover:bg-[#ff00ff]/10 transition-colors"
-                      >
-                        {offeringId === request.id ? 'CANCEL' : 'MAKE_OFFER'}
-                      </button>
                     )}
                   </div>
                 </div>
 
-                {/* Offer Form */}
-                {offeringId === request.id && (
-                  <div className="p-6 border-b border-[#27272a]">
-                    <OfferForm
-                      requestId={request.id}
-                      onSubmit={handleSubmitOffer}
-                      onCancel={() => setOfferingId(null)}
-                      isLoading={submittingOffer}
-                    />
-                  </div>
-                )}
-
-                {/* Offers List */}
+                {/* Conversations List */}
                 {expandedId === request.id && (
                   <div className="p-6 bg-[#0a0a0f]/50">
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-[#ff00ff]">{'<>'}</span>
                       <span className="text-sm text-[#52525b] tracking-wider">
-                        OFFERS ({request.offers.length})
+                        CONVERSATIONS ({request.conversations?.length || 0})
                       </span>
                     </div>
 
-                    {request.offers.length > 0 ? (
+                    {request.conversations?.length > 0 ? (
                       <div className="space-y-3">
-                        {request.offers.map((offer) => (
+                        {request.conversations.map((conv) => (
                           <div
-                            key={offer.id}
+                            key={conv.id}
                             className={`p-4 border transition-colors ${
-                              offer.status === 'accepted'
+                              conv.status === 'completed'
                                 ? 'border-[#22c55e]/50 bg-[#22c55e]/5'
-                                : offer.status === 'rejected'
-                                ? 'border-[#ef4444]/30 bg-[#ef4444]/5 opacity-60'
                                 : 'border-[#27272a] hover:border-[#00f5ff]/50'
                             }`}
                           >
@@ -328,7 +265,7 @@ export default function MarketplacePage() {
                               {/* User */}
                               <div className="w-8 h-8 bg-gradient-to-br from-[#00f5ff]/20 to-[#ff00ff]/20 flex items-center justify-center border border-[#00f5ff]/30">
                                 <span className="text-[#00f5ff] text-xs">
-                                  {offer.user.name?.[0] || 'A'}
+                                  {conv.targetUser.name?.[0] || 'A'}
                                 </span>
                               </div>
 
@@ -336,21 +273,18 @@ export default function MarketplacePage() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-[#e4e4e7] font-semibold text-sm">
-                                    {offer.user.name || 'Agent'}
+                                    {conv.targetUser.name || 'Agent'}
                                   </span>
-                                  {offer.resource && (
-                                    <span className="px-2 py-0.5 bg-[#00f5ff]/10 text-[#00f5ff] text-xs">
-                                      {offer.resource.type}
-                                    </span>
-                                  )}
-                                  <span className={`px-2 py-0.5 border text-xs uppercase ${getStatusColor(offer.status)}`}>
-                                    {offer.status}
+                                  <span className={`px-2 py-0.5 border text-xs uppercase ${getStatusColor(conv.status)}`}>
+                                    {conv.status}
                                   </span>
                                 </div>
-                                <p className="text-[#e4e4e7]">{offer.content}</p>
-                                {offer.reasoning && (
+                                <p className="text-[#a1a1aa] text-sm">
+                                  {conv.messages[conv.messages.length - 1]?.content.slice(0, 150)}...
+                                </p>
+                                {conv.summary && (
                                   <p className="text-xs text-[#52525b] mt-1 italic">
-                                    // Agent: {offer.reasoning}
+                                    // {conv.summary}
                                   </p>
                                 )}
                               </div>
@@ -360,7 +294,7 @@ export default function MarketplacePage() {
                       </div>
                     ) : (
                       <div className="text-center py-4 text-[#52525b] text-sm">
-                        // 暂无 Offers，点击 MAKE_OFFER 成为第一个
+                        // 暂无对话
                       </div>
                     )}
                   </div>
@@ -379,7 +313,7 @@ export default function MarketplacePage() {
             <span className="w-1 h-1 bg-[#52525b] rounded-full" />
             <span>{requests.length} REQUESTS</span>
             <span className="w-1 h-1 bg-[#52525b] rounded-full" />
-            <span>{requests.reduce((acc, r) => acc + r.offerCount, 0)} OFFERS</span>
+            <span>{requests.reduce((acc, r) => acc + (r.conversationCount || 0), 0)} CONVERSATIONS</span>
           </div>
           <div className="flex items-center gap-4">
             <span>PROTOCOL v0.2.0</span>
