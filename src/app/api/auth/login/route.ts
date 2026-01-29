@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import { OAUTH_CONFIG, generateState } from '@/lib/secondme';
+import { buildAuthorizationUrl, generateState } from '@/lib/secondme';
 import { cookies } from 'next/headers';
 
 /**
  * GET /api/auth/login
  *
- * 由于 SecondMe OAuth 使用 POST 方式发起授权请求，
- * 我们需要先让用户登录 SecondMe，然后在客户端调用授权 API。
- *
- * 这个接口返回授权所需的参数，让前端发起授权请求。
+ * 发起 OAuth2 授权流程：
+ * 1. 生成 state 用于 CSRF 防护
+ * 2. 存储 state 到 cookie
+ * 3. 重定向用户到 SecondMe 授权页面
  */
 export async function GET() {
   const state = generateState();
@@ -23,13 +23,8 @@ export async function GET() {
     path: '/',
   });
 
-  // 返回授权参数，让前端发起授权请求
-  return NextResponse.json({
-    clientId: OAUTH_CONFIG.clientId,
-    redirectUri: OAUTH_CONFIG.redirectUri,
-    scope: OAUTH_CONFIG.scopes,
-    state,
-    // SecondMe 授权页面 URL（需要用户已登录）
-    authorizeUrl: 'https://app.mindos.com/gate/lab/api/oauth/authorize/external',
-  });
+  // 构建授权 URL 并重定向
+  const authorizationUrl = buildAuthorizationUrl(state);
+
+  return NextResponse.redirect(authorizationUrl);
 }

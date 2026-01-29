@@ -2,56 +2,12 @@
 
 import { useState } from 'react';
 
-interface AuthParams {
-  clientId: string;
-  redirectUri: string;
-  scope: string[];
-  state: string;
-  authorizeUrl: string;
-}
-
 export default function LoginButton() {
-  const [loading, setLoading] = useState(false);
   const [hover, setHover] = useState(false);
 
-  const handleLogin = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/auth/login');
-      const authParams: AuthParams = await response.json();
-
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = authParams.authorizeUrl;
-
-      const addField = (name: string, value: string) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
-      };
-
-      addField('clientId', authParams.clientId);
-      addField('redirectUri', authParams.redirectUri);
-      addField('state', authParams.state);
-
-      authParams.scope.forEach((s) => {
-        addField('scope', s);
-      });
-
-      document.body.appendChild(form);
-      form.submit();
-    } catch (error) {
-      console.error('Login error:', error);
-      setLoading(false);
-    }
-  };
-
   return (
-    <button
-      onClick={handleLogin}
-      disabled={loading}
+    <a
+      href="/api/auth/login"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className="group relative inline-flex items-center justify-center overflow-hidden"
@@ -76,44 +32,26 @@ export default function LoginButton() {
 
         {/* Content */}
         <div className="flex items-center gap-4">
-          {loading ? (
-            <>
-              {/* Loading animation */}
-              <div className="relative w-5 h-5">
-                <div className="absolute inset-0 border-2 border-[#00f5ff]/30 rounded-full" />
-                <div className="absolute inset-0 border-2 border-transparent border-t-[#00f5ff] rounded-full animate-spin" />
-              </div>
-              <span
-                className="text-[#00f5ff] text-sm font-semibold tracking-[0.2em] uppercase"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                CONNECTING...
-              </span>
-            </>
-          ) : (
-            <>
-              {/* Icon */}
-              <svg
-                className="w-5 h-5 text-[#00f5ff] transition-transform duration-300 group-hover:translate-x-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-              <span
-                className="text-[#00f5ff] text-sm font-semibold tracking-[0.2em] uppercase"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                INITIALIZE CONNECTION
-              </span>
-            </>
-          )}
+          {/* Icon */}
+          <svg
+            className="w-5 h-5 text-[#00f5ff] transition-transform duration-300 group-hover:translate-x-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 10V3L4 14h7v7l9-11h-7z"
+            />
+          </svg>
+          <span
+            className="text-[#00f5ff] text-sm font-semibold tracking-[0.2em] uppercase"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            INITIALIZE CONNECTION
+          </span>
         </div>
 
         {/* Scan line effect on hover */}
@@ -126,11 +64,9 @@ export default function LoginButton() {
 
       {/* Status indicator */}
       <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 text-xs text-[#52525b]">
-        <span className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-[#ff00ff] animate-pulse' : 'bg-[#00f5ff]'}`} />
-        <span className="tracking-wider uppercase">
-          {loading ? 'AUTH IN PROGRESS' : 'READY'}
-        </span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[#00f5ff]" />
+        <span className="tracking-wider uppercase">READY</span>
       </div>
-    </button>
+    </a>
   );
 }

@@ -5,6 +5,9 @@
 
 const SECONDME_BASE_URL = 'https://app.mindos.com/gate/lab';
 
+// OAuth 授权 URL (使用通用链接)
+const OAUTH_AUTHORIZE_URL = 'https://go.second.me/oauth/';
+
 // OAuth 配置
 export const OAUTH_CONFIG = {
   clientId: process.env.SECONDME_CLIENT_ID!,
@@ -26,6 +29,7 @@ export interface TokenResponse {
   tokenType: string;
   expiresIn: number;
   scope: string[];
+  openId?: string;
 }
 
 // 用户信息类型
@@ -51,23 +55,30 @@ interface ApiResponse<T> {
 }
 
 /**
- * 构造 OAuth 授权 URL
- * 注意：SecondMe 使用 POST 方式发起授权，需要用户登录后调用
- */
-export function getAuthorizationParams(state?: string) {
-  return {
-    clientId: OAUTH_CONFIG.clientId,
-    redirectUri: OAUTH_CONFIG.redirectUri,
-    scope: OAUTH_CONFIG.scopes,
-    state: state || generateState(),
-  };
-}
-
-/**
  * 生成随机 state 用于 CSRF 防护
  */
 export function generateState(): string {
-  return Math.random().toString(36).substring(2, 15);
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * 构造 OAuth 授权 URL (使用标准重定向流程)
+ * 用户点击后重定向到此 URL，在 SecondMe 上登录并授权
+ */
+export function buildAuthorizationUrl(state: string): string {
+  const url = new URL(OAUTH_AUTHORIZE_URL);
+
+  url.searchParams.append('client_id', OAUTH_CONFIG.clientId);
+  url.searchParams.append('redirect_uri', OAUTH_CONFIG.redirectUri);
+  url.searchParams.append('response_type', 'code');
+  url.searchParams.append('state', state);
+
+  // 添加 scope (作为空格分隔的字符串)
+  url.searchParams.append('scope', OAUTH_CONFIG.scopes.join(' '));
+
+  return url.toString();
 }
 
 /**
