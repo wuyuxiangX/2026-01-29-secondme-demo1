@@ -121,12 +121,20 @@ export default function MarketplacePage() {
             </div>
           </div>
 
-          <a
-            href="/dashboard"
-            className="btn btn-secondary text-sm py-2 px-4"
-          >
-            返回控制台
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href="/network"
+              className="btn btn-secondary text-sm py-2 px-4"
+            >
+              网络成员
+            </a>
+            <a
+              href="/dashboard"
+              className="btn btn-secondary text-sm py-2 px-4"
+            >
+              返回控制台
+            </a>
+          </div>
         </div>
       </header>
 

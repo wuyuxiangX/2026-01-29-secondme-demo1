@@ -78,6 +78,14 @@ export default async function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Network Link */}
+            <a
+              href="/network"
+              className="btn btn-secondary text-sm py-2 px-4"
+            >
+              网络成员
+            </a>
+
             {/* Marketplace Link */}
             <a
               href="/marketplace"
