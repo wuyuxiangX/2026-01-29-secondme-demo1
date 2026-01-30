@@ -537,11 +537,8 @@ export async function broadcastRequestWithStream(
 
   console.log(`[NetworkChat] Broadcasting to ${users.length} users with SSE...`);
 
-  // 为每个用户创建临时的对话 ID 映射
-  const conversationMap = new Map<string, string>();
-
-  // 对每个用户顺序执行自动对话（顺序执行便于调试，可改为并行）
-  for (const user of users) {
+  // 并行执行所有用户的自动对话
+  const promises = users.map(async (user) => {
     const tempConvId = `temp_${user.id}`;
 
     // 发送对话开始事件
@@ -587,8 +584,6 @@ export async function broadcastRequestWithStream(
         },
       });
 
-      conversationMap.set(tempConvId, conversation.id);
-
       // 发送对话结束事件
       await writer.write({
         event: 'conversation_end',
@@ -611,7 +606,10 @@ export async function broadcastRequestWithStream(
         },
       });
     }
-  }
+  });
+
+  // 等待所有对话完成
+  await Promise.allSettled(promises);
 
   // 更新 Request 状态
   await prisma.request.update({

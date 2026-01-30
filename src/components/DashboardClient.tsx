@@ -297,7 +297,10 @@ export default function DashboardClient() {
         setCurrentRequestId(requestId);
         addLog(`全部对话完成！共 ${totalConversations} 个对话`);
         // 自动生成总结
-        generateSummary(requestId);
+        generateSummary(requestId).catch((err) => {
+          console.error('Summary generation failed:', err);
+          addLog(`总结生成失败: ${err}`);
+        });
         break;
       }
 
