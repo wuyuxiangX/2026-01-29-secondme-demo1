@@ -20,6 +20,7 @@ export async function POST() {
 export async function GET(request: Request) {
   await clearSession();
 
-  const url = new URL('/', request.url);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.url;
+  const url = new URL('/', baseUrl);
   return NextResponse.redirect(url);
 }
