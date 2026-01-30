@@ -312,13 +312,17 @@ export async function chat(
   const decoder = new TextDecoder();
   let content = '';
   let sessionId = '';
+  let buffer = '';  // 行缓冲区，处理跨 chunk 的 SSE 行
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
 
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\n');
+    buffer += decoder.decode(value, { stream: true });
+
+    // 按完整行处理
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';  // 保留最后不完整的行
 
     for (const line of lines) {
       if (line.startsWith('event: session')) {
@@ -328,7 +332,7 @@ export async function chat(
       if (line.startsWith('data: ')) {
         const data = line.slice(6);
         if (data === '[DONE]') {
-          break;
+          continue;  // 用 continue 继续处理后续行
         }
         try {
           const parsed = JSON.parse(data);
@@ -347,10 +351,9 @@ export async function chat(
             content += parsed.delta;
           }
         } catch {
-          // 可能是纯文本增量
-          if (data && data !== '[DONE]') {
-            content += data;
-          }
+          // JSON 解析失败时，不做任何处理（不要把原始数据当纯文本）
+          // 这可能是因为数据跨 chunk 分割，下次读取会拿到完整数据
+          console.warn('[SecondMe] Failed to parse SSE data:', data.slice(0, 100));
         }
       }
     }

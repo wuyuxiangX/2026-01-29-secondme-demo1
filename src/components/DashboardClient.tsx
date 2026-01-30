@@ -59,6 +59,10 @@ export default function DashboardClient() {
   // 实时对话状态（SSE 流式更新）
   const [realtimeConversations, setRealtimeConversations] = useState<RealtimeConversation[]>([]);
 
+  // 自动总结状态
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
   // 自动滚动日志（只在容器内滚动，不影响页面）
@@ -98,6 +102,34 @@ export default function DashboardClient() {
     setCurrentRequestId(null);
     setLogs([]);
     setRealtimeConversations([]);
+    setSummary(null);
+  };
+
+  // 自动生成总结
+  const generateSummary = async (requestId: string) => {
+    setIsSummarizing(true);
+    addLog('正在生成对话总结...');
+
+    try {
+      const res = await fetch('/api/network/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setSummary(data.data.summary);
+        addLog('总结生成完成！');
+      } else {
+        addLog(`总结生成失败: ${data.error || '未知错误'}`);
+      }
+    } catch (err) {
+      addLog(`总结生成失败: ${err}`);
+    } finally {
+      setIsSummarizing(false);
+    }
   };
 
   // 提交新需求并广播到网络（SSE 流式版本）
@@ -161,6 +193,15 @@ export default function DashboardClient() {
             }
           }
         }
+
+        // 流结束后，确保所有对话状态都被更新为完成（兜底处理）
+        setRealtimeConversations((prev) =>
+          prev.map((conv) =>
+            conv.status === 'ongoing'
+              ? { ...conv, status: 'max_rounds' }
+              : conv
+          )
+        );
 
         setPhase('completed');
         await fetchRequests();
@@ -255,6 +296,8 @@ export default function DashboardClient() {
         };
         setCurrentRequestId(requestId);
         addLog(`全部对话完成！共 ${totalConversations} 个对话`);
+        // 自动生成总结
+        generateSummary(requestId);
         break;
       }
 
@@ -345,6 +388,33 @@ export default function DashboardClient() {
                   <RealtimeConversationCard key={conv.id} conversation={conv} />
                 ))}
               </div>
+
+              {/* 自动总结 */}
+              {isSummarizing && (
+                <div className="card p-4">
+                  <div className="flex items-center gap-2 text-blue-500">
+                    <svg className="w-5 h-5 loading" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm">正在生成总结...</span>
+                  </div>
+                </div>
+              )}
+
+              {summary && (
+                <div className="card p-4">
+                  <h3 className="text-sm font-medium text-slate-900 mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    对话总结
+                  </h3>
+                  <div className="text-sm text-slate-600 whitespace-pre-wrap bg-slate-50 rounded-lg p-3 border border-slate-100">
+                    {summary}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
