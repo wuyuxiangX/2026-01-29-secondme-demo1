@@ -4,6 +4,15 @@ import { setSession } from '@/lib/session';
 import { cookies } from 'next/headers';
 
 /**
+ * Build redirect URL using NEXT_PUBLIC_BASE_URL if available.
+ * This ensures correct redirects on Zeabur where request.url may be incorrect.
+ */
+function buildRedirectUrl(path: string, fallbackUrl: string): URL {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || fallbackUrl;
+  return new URL(path, baseUrl);
+}
+
+/**
  * GET /api/auth/callback
  *
  * OAuth 回调处理：
@@ -14,6 +23,15 @@ import { cookies } from 'next/headers';
  * 5. 重定向到 dashboard
  */
 export async function GET(request: NextRequest) {
+  // Debug logging for OAuth callback troubleshooting
+  console.log('[OAuth Callback] Full request URL:', request.url);
+  console.log('[OAuth Callback] Host header:', request.headers.get('host'));
+  console.log('[OAuth Callback] X-Forwarded-Host:', request.headers.get('x-forwarded-host'));
+  console.log('[OAuth Callback] X-Forwarded-Proto:', request.headers.get('x-forwarded-proto'));
+  console.log('[OAuth Callback] Origin:', request.headers.get('origin'));
+  console.log('[OAuth Callback] NEXT_PUBLIC_BASE_URL:', process.env.NEXT_PUBLIC_BASE_URL || '(not set)');
+  console.log('[OAuth Callback] Query params:', Object.fromEntries(request.nextUrl.searchParams));
+
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
   const state = searchParams.get('state');
@@ -22,16 +40,16 @@ export async function GET(request: NextRequest) {
   // 处理授权错误
   if (error) {
     const errorDescription = searchParams.get('error_description') || 'Authorization failed';
-    return NextResponse.redirect(
-      new URL(`/?error=${encodeURIComponent(errorDescription)}`, request.url)
-    );
+    const redirectUrl = buildRedirectUrl(`/?error=${encodeURIComponent(errorDescription)}`, request.url);
+    console.log('[OAuth Callback] Error redirect to:', redirectUrl.toString());
+    return NextResponse.redirect(redirectUrl);
   }
 
   // 验证必要参数
   if (!code) {
-    return NextResponse.redirect(
-      new URL('/?error=Missing authorization code', request.url)
-    );
+    const redirectUrl = buildRedirectUrl('/?error=Missing authorization code', request.url);
+    console.log('[OAuth Callback] Missing code redirect to:', redirectUrl.toString());
+    return NextResponse.redirect(redirectUrl);
   }
 
   // 验证 state（CSRF 防护）
@@ -39,9 +57,9 @@ export async function GET(request: NextRequest) {
   const savedState = cookieStore.get('oauth_state')?.value;
 
   if (state && savedState && state !== savedState) {
-    return NextResponse.redirect(
-      new URL('/?error=Invalid state parameter', request.url)
-    );
+    const redirectUrl = buildRedirectUrl('/?error=Invalid state parameter', request.url);
+    console.log('[OAuth Callback] Invalid state redirect to:', redirectUrl.toString());
+    return NextResponse.redirect(redirectUrl);
   }
 
   // 清除 state cookie
@@ -55,12 +73,14 @@ export async function GET(request: NextRequest) {
     await setSession(tokenData);
 
     // 重定向到 dashboard
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    const redirectUrl = buildRedirectUrl('/dashboard', request.url);
+    console.log('[OAuth Callback] Success redirect to:', redirectUrl.toString());
+    return NextResponse.redirect(redirectUrl);
   } catch (error) {
     console.error('OAuth callback error:', error);
     const message = error instanceof Error ? error.message : 'Authentication failed';
-    return NextResponse.redirect(
-      new URL(`/?error=${encodeURIComponent(message)}`, request.url)
-    );
+    const redirectUrl = buildRedirectUrl(`/?error=${encodeURIComponent(message)}`, request.url);
+    console.log('[OAuth Callback] Exception redirect to:', redirectUrl.toString());
+    return NextResponse.redirect(redirectUrl);
   }
 }
