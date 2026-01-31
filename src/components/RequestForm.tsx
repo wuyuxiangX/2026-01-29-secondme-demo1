@@ -49,7 +49,7 @@ export default function RequestForm({ onSubmit, isLoading = false }: RequestForm
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="输入你的需求... 例如：我想办一场户外电影之夜，邀请朋友来。我什么都没有，预算 200 块。"
-            className="input h-32 resize-none"
+            className="input h-24 md:h-32 resize-none"
             disabled={isLoading}
           />
         </div>

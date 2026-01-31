@@ -18,8 +18,8 @@ export default function UserProfile({ user, shades }: UserProfileProps) {
   return (
     <div className="space-y-4">
       {/* 用户信息卡片 */}
-      <div className="card p-6">
-        <div className="flex items-start gap-4">
+      <div className="card p-4 md:p-6">
+        <div className="flex items-start gap-3 md:gap-4">
           {/* 头像 */}
           <div className="relative">
             {user.avatar ? (
@@ -65,7 +65,7 @@ export default function UserProfile({ user, shades }: UserProfileProps) {
       </div>
 
       {/* 兴趣标签 */}
-      <div className="card p-6">
+      <div className="card p-4 md:p-6">
         <h3 className="font-medium text-slate-900 mb-4">兴趣标签</h3>
 
         {shades && shades.length > 0 ? (
@@ -86,7 +86,7 @@ export default function UserProfile({ user, shades }: UserProfileProps) {
       </div>
 
       {/* 统计数据 */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
         <div className="card p-4 text-center">
           <p className="text-2xl font-bold text-slate-900">0</p>
           <p className="text-xs text-slate-500 mt-1">发布需求</p>

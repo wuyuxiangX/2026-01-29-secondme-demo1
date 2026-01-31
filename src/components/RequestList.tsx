@@ -98,7 +98,7 @@ export default function RequestList({ requests, onViewConversation }: RequestLis
               </div>
               <button
                 onClick={() => setExpandedId(expandedId === request.id ? null : request.id)}
-                className="text-slate-400 hover:text-blue-500 transition-colors p-1"
+                className="text-slate-400 hover:text-blue-500 transition-colors p-2"
               >
                 <svg className={`w-5 h-5 transition-transform ${expandedId === request.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

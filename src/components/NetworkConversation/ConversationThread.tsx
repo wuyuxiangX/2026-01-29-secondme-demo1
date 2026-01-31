@@ -51,7 +51,7 @@ export function ConversationThread({
   const sending = isLocalSending || isSending;
 
   return (
-    <div className="card overflow-hidden flex flex-col h-[400px]">
+    <div className="card overflow-hidden flex flex-col h-80 md:h-[400px]">
       {/* 头部 */}
       <div className="flex items-center justify-between p-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export function ConversationThread({
           </div>
           <button
             onClick={handleComplete}
-            className="w-full py-1.5 text-xs text-slate-400 hover:text-green-500 border border-transparent hover:border-green-200 rounded-lg transition-all"
+            className="w-full py-2 text-xs text-slate-400 hover:text-green-500 border border-transparent hover:border-green-200 rounded-lg transition-all"
           >
             标记完成
           </button>
@@ -141,7 +141,7 @@ function MessageBubble({ message, userName }: { message: Message; userName: stri
   return (
     <div className={`flex ${isRequester ? 'justify-start' : 'justify-end'}`}>
       <div
-        className={`rounded-2xl px-4 py-2 max-w-[85%] ${
+        className={`rounded-2xl px-4 py-2 max-w-[90%] md:max-w-[75%] ${
           isRequester
             ? 'bg-white border border-slate-200 rounded-bl-sm'
             : 'bg-blue-500 text-white rounded-br-sm'

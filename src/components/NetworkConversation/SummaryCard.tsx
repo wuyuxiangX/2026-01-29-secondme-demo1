@@ -4,7 +4,7 @@ import { SummaryCardProps } from './types';
 
 export function SummaryCard({ summary, totalCount, completedCount }: SummaryCardProps) {
   return (
-    <div className="card p-6 border-purple-100 bg-purple-50/50">
+    <div className="card p-4 md:p-6 border-purple-100 bg-purple-50/50">
       {/* 标题 */}
       <div className="flex items-center gap-2 mb-4">
         <svg className="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -16,7 +16,7 @@ export function SummaryCard({ summary, totalCount, completedCount }: SummaryCard
       </div>
 
       {/* 统计信息 */}
-      <div className="flex gap-6 mb-4 text-sm">
+      <div className="flex flex-wrap gap-3 md:gap-6 mb-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="text-slate-500">对话总数:</span>
           <span className="text-blue-500 font-medium">{totalCount}</span>

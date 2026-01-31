@@ -190,7 +190,7 @@ export function NetworkConversation({
       )}
 
       {/* 对话网格 */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         {conversations.map((conversation) => (
           <ConversationThread
             key={conversation.id}

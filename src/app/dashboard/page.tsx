@@ -77,11 +77,11 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Network Link */}
             <a
               href="/network"
-              className="btn btn-secondary text-sm py-2 px-4"
+              className="btn btn-secondary text-sm py-2 px-3 md:px-4"
             >
               网络成员
             </a>
@@ -89,7 +89,7 @@ export default async function DashboardPage() {
             {/* Marketplace Link */}
             <a
               href="/marketplace"
-              className="btn btn-secondary text-sm py-2 px-4"
+              className="btn btn-secondary text-sm py-2 px-3 md:px-4"
             >
               需求市场
             </a>
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 py-6 md:px-6 md:py-8">
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
           {/* Left: User Profile */}
           <div className="lg:col-span-1">
             <UserProfile user={userInfo} shades={userShades} />

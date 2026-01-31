@@ -452,12 +452,23 @@ export async function generateSummary(requestId: string): Promise<string> {
   }
 
   // 使用 AI 生成总结
-  const prompt = `请根据以下需求和对话记录，生成一个简洁的总结，说明有哪些人可以帮忙，提供什么资源：\n\n${summaryContent}`;
+  const prompt = `请根据以下需求和对话记录，生成一个简洁的总结：\n\n${summaryContent}`;
 
-  const systemPrompt = `你是一个助手，负责总结对话结果。请用简洁的中文回答，列出：
-1. 有多少人回复了
-2. 有哪些人愿意帮忙，提供什么
-3. 还有什么需求没有满足`;
+  const systemPrompt = `你是一个助手，负责总结网络对话结果。
+
+请先分析需求的类型：
+- 资源需求型：需要借用物品、场地、人力等
+- 调研收集型：收集意见、反馈、看法
+- 咨询建议型：寻求专业建议或解答
+- 讨论交流型：探讨话题、头脑风暴
+
+根据需求类型，用适合的方式总结：
+- 资源需求：列出谁提供什么资源，还差什么
+- 调研收集：汇总各方观点和共识/分歧
+- 咨询建议：整理收到的建议和方案
+- 讨论交流：提炼讨论要点和结论
+
+请用简洁的中文回答，直接输出总结内容。`;
 
   const summary = await quickChat(prompt, systemPrompt);
 

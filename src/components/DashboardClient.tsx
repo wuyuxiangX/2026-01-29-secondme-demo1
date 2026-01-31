@@ -374,7 +374,7 @@ export default function DashboardClient() {
               </div>
 
               {/* 日志窗口 */}
-              <div ref={logsContainerRef} className="bg-slate-50 rounded-lg p-4 h-48 overflow-y-auto text-sm border border-slate-100">
+              <div ref={logsContainerRef} className="bg-slate-50 rounded-lg p-4 h-40 md:h-48 overflow-y-auto text-sm border border-slate-100">
                 {logs.map((log, i) => (
                   <div key={i} className="text-slate-600 mb-1">{log}</div>
                 ))}
@@ -503,7 +503,7 @@ function RealtimeConversationCard({ conversation }: { conversation: RealtimeConv
   };
 
   return (
-    <div className="card overflow-hidden flex flex-col h-[400px]">
+    <div className="card overflow-hidden flex flex-col h-80 md:h-[400px]">
       {/* 头部 */}
       <div className="flex items-center justify-between p-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
@@ -537,7 +537,7 @@ function RealtimeConversationCard({ conversation }: { conversation: RealtimeConv
             className={`flex ${msg.role === 'requester' ? 'justify-start' : 'justify-end'}`}
           >
             <div
-              className={`rounded-2xl px-4 py-2 max-w-[85%] ${
+              className={`rounded-2xl px-4 py-2 max-w-[90%] md:max-w-[75%] ${
                 msg.role === 'requester'
                   ? 'bg-white border border-slate-200 rounded-bl-sm'
                   : 'bg-blue-500 text-white rounded-br-sm'
