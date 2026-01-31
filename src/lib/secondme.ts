@@ -105,6 +105,9 @@ export function buildAuthorizationUrl(state: string): string {
  * 用授权码换取 access token
  */
 export async function exchangeCodeForToken(code: string): Promise<TokenResponse> {
+  console.log('[exchangeCodeForToken] redirect_uri being used:', OAUTH_CONFIG.redirectUri);
+  console.log('[exchangeCodeForToken] client_id:', OAUTH_CONFIG.clientId);
+
   const response = await apiFetch(`${SECONDME_BASE_URL}/api/oauth/token/code`, {
     method: 'POST',
     headers: {
@@ -120,8 +123,10 @@ export async function exchangeCodeForToken(code: string): Promise<TokenResponse>
   });
 
   const result: ApiResponse<TokenResponse> = await response.json();
+  console.log('[exchangeCodeForToken] API response:', JSON.stringify(result));
 
   if (result.code !== 0) {
+    console.error('[exchangeCodeForToken] Token exchange failed:', result.message, result);
     throw new Error(result.message || 'Failed to exchange code for token');
   }
 
